@@ -385,7 +385,7 @@ footer b{color:var(--tinta2)}
   <div>
     <h1>Stat Product</h1>
     <div class="sub">IV, ligas e ataques · base PvPoke de <span id="gmdate"></span><br>
-      <span style="opacity:.75">versão <b id="verapp">04/10 21:59</b></span></div>
+      <span style="opacity:.75">versão <b id="verapp">04/10 22:02</b></span></div>
   </div>
 </header>
 
@@ -926,10 +926,23 @@ function pintarReide(){
 }
 
 function reidePorTipo(box){
+  const contra = S.rListaModo!=='ataca';
+
+  const modo=el('div','segs');
+  modo.style.marginTop='10px';
+  [['contra','Melhor CONTRA o tipo'],['ataca','Melhor atacante DO tipo']].forEach(([k,rot])=>{
+    const d=el('div', (contra?(k==='contra'):(k==='ataca'))?'on':'', rot);
+    d.onclick=()=>{ S.rListaModo=k; S.rVer=15; pintarReide(); };
+    modo.appendChild(d);
+  });
+  box.appendChild(modo);
+
   const sc=el('div','scroll');
-  const ger=el('div','chip'+(S.rTipo?'':' on'),'Geral');
-  ger.onclick=()=>{ S.rTipo=null; S.rVer=15; pintarReide(); };
-  sc.appendChild(ger);
+  if(!contra){
+    const ger=el('div','chip'+(S.rTipo?'':' on'),'Geral');
+    ger.onclick=()=>{ S.rTipo=null; S.rVer=15; pintarReide(); };
+    sc.appendChild(ger);
+  }
   DB.types.forEach(t=>{
     const on=S.rTipo===t, cor=CORTIPO[t]||'#8895A6';
     const c=el('div','chip'+(on?' on':''), TIPO[t]||t);
@@ -941,14 +954,19 @@ function reidePorTipo(box){
   });
   box.appendChild(sc);
 
-  const T=S.rTipo;
-  const lista=T?rankingTipo(T):rankingGeral();
+  // no modo CONTRA sempre há um tipo alvo; sem escolha, começo pelo primeiro
+  let T=S.rTipo;
+  if(contra && !T){ T='normal'; S.rTipo=T; }
+
+  const lista = contra ? rankingContra(T) : (T?rankingTipo(T):rankingGeral());
   const sec=el('div','sec');
-  sec.appendChild(el('h2',null, T?'Melhores atacantes de '+(TIPO[T]||T)
-                                :'Melhores atacantes no geral'));
-  sec.appendChild(el('div','eyebrow', T
-    ? lista.length+' Pokémon com golpe carregado de '+(TIPO[T]||T)
-    : lista.length+' Pokémon, cada um no melhor golpe que tem'));
+  sec.appendChild(el('h2',null, contra
+    ? 'Melhores contra chefe de '+(TIPO[T]||T)
+    : (T?'Melhores atacantes de '+(TIPO[T]||T):'Melhores atacantes no geral')));
+  sec.appendChild(el('div','eyebrow', contra
+    ? lista.length+' avaliados, com o dano já multiplicado pela fraqueza de '+(TIPO[T]||T)
+    : (T ? lista.length+' Pokémon com golpe carregado de '+(TIPO[T]||T)
+         : lista.length+' Pokémon, cada um no melhor golpe que tem')));
   lista.slice(0, S.rVer||15).forEach((x,i)=>sec.appendChild(linhaAtacante(x,i)));
   if(lista.length>(S.rVer||15)){
     const b=el('button','act ghost','Mostrar mais 15');
@@ -957,7 +975,29 @@ function reidePorTipo(box){
   }
   box.appendChild(sec);
 
-  // o que esse tipo resolve
+  if(contra){
+    // o que machuca um chefe desse tipo
+    const mult={};
+    DB.types.forEach(t=>{ const m=DB.eff[t][DB.types.indexOf(T)]; if(m!==1) mult[t]=m; });
+    const fortes=Object.keys(mult).filter(t=>mult[t]>1);
+    const fracos=Object.keys(mult).filter(t=>mult[t]<1);
+    const c=el('div','carta');
+    c.appendChild(el('div','tit','O que machuca um chefe de '+(TIPO[T]||T)));
+    const bloco=el('div');
+    bloco.innerHTML=
+      '<div class="tlinha"><div class="trot" style="color:#2E7DE8">Bate forte<div class="tmult">1,6×</div></div>'+
+      '<div class="tchips">'+(fortes.length?fortes.map(t=>chipTipo(t)).join('')
+        :'<span style="font-size:11.5px;color:var(--fraco)">nenhum</span>')+'</div></div>'+
+      '<div class="tlinha"><div class="trot" style="color:#C0392B">Resistido<div class="tmult">0,63×</div></div>'+
+      '<div class="tchips">'+(fracos.length?fracos.map(t=>chipTipo(t)).join('')
+        :'<span style="font-size:11.5px;color:var(--fraco)">nenhum</span>')+'</div></div>';
+    c.appendChild(bloco);
+    c.appendChild(el('div','note','Este é o chefe de <b>tipo puro</b>. Se ele tiver dois tipos, '+
+      'use "Contra um chefe" — lá eu multiplico os dois e acho a fraqueza dupla.'));
+    box.appendChild(c);
+    return;
+  }
+
   if(!T){
     box.appendChild(el('div','note','Sem tipo escolhido eu mostro o melhor golpe de cada um, '+
       'sem travar o elemento. Toque num tipo acima para ver quem levar contra ele.'));
@@ -967,13 +1007,14 @@ function reidePorTipo(box){
   const ruins=DB.types.filter(alvo=>DB.eff[T][DB.types.indexOf(alvo)]<1);
   const c=el('div','carta');
   c.appendChild(el('div','tit','Contra quem levar '+(TIPO[T]||T)));
-  c.innerHTML+='<div class="tlinha"><div class="trot" style="color:#2E7DE8">Bate forte<div class="tmult">1,6×</div></div>'+
+  const bloco2=el('div');
+  bloco2.innerHTML='<div class="tlinha"><div class="trot" style="color:#2E7DE8">Bate forte<div class="tmult">1,6×</div></div>'+
     '<div class="tchips">'+bons.map(t=>chipTipo(t)).join('')+'</div></div>'+
     '<div class="tlinha"><div class="trot" style="color:#C0392B">Desperdício<div class="tmult">0,63×</div></div>'+
     '<div class="tchips">'+ruins.map(t=>chipTipo(t)).join('')+'</div></div>';
+  c.appendChild(bloco2);
   box.appendChild(c);
 }
-
 
 function reideContraChefe(box){
   const busca=el('input');
@@ -1951,7 +1992,7 @@ function manual(txt,ok){
 }
 
 // ---- estado -------------------------------------------------------------
-const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, rCardModo:'contra', rCardTudo:false, rLista:'lend', rVerC:24, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
+const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, rCardModo:'contra', rCardTudo:false, rListaModo:'contra', rLista:'lend', rVerC:24, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
 const $ = s => document.querySelector(s);
 const el = (t,c,html,txt)=>{const e=document.createElement(t); if(c)e.className=c;
   if(html!=null)e.innerHTML=html; if(txt!=null)e.textContent=txt; return e};
