@@ -265,6 +265,18 @@ td.n{text-align:right;font-family:var(--num);font-variant-numeric:tabular-nums}
 .trot{font:800 10px var(--disp);letter-spacing:.07em;text-transform:uppercase;min-width:92px;
   padding-top:4px;line-height:1.3}
 .trot .tmult{font:700 9.5px var(--num);letter-spacing:0;opacity:.65;margin-top:1px}
+
+.league.reide .top .lg{color:#E8763A}
+.reidetipos{padding:2px 15px 12px}
+.rtipo{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--linha2)}
+.rtipo:first-child{border-top:0}
+.rt-pos{font:800 13px var(--disp);color:var(--fraco);min-width:20px}
+.rt-chip{min-width:92px}
+.rt-dados{flex:1;font-size:12px;color:var(--tinta2);min-width:0}
+.rt-dados b{font-family:var(--num);color:var(--tinta)}
+.rt-mv{font-size:11px;color:var(--fraco);margin-top:2px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+#chefehits{position:relative}
 .chip-par{display:inline-flex;border-radius:99px;overflow:hidden;
   box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 2px 6px rgba(22,33,46,.2)}
 .chip-par i{font:800 10.5px var(--disp);letter-spacing:.06em;text-transform:uppercase;
@@ -352,7 +364,7 @@ footer b{color:var(--tinta2)}
   <div>
     <h1>Stat Product</h1>
     <div class="sub">IV, ligas e ataques · base PvPoke de <span id="gmdate"></span><br>
-      <span style="opacity:.75">versão <b id="verapp">02/08 00:47</b></span></div>
+      <span style="opacity:.75">versão <b id="verapp">04/10 21:03</b></span></div>
   </div>
 </header>
 
@@ -400,6 +412,11 @@ footer b{color:var(--tinta2)}
     <div id="timeout"></div>
   </section>
 
+  <!-- ============ REIDE ============ -->
+  <section class="view" id="v-reide">
+    <div id="reideout"></div>
+  </section>
+
   <!-- ============ IMPORTAR ============ -->
   <section class="view" id="v-import">
     <p style="font-size:13px;color:var(--muted);margin:0 0 10px;line-height:1.5">
@@ -445,6 +462,8 @@ footer b{color:var(--tinta2)}
     stroke-linecap="round"><path d="M6 20V11M12 20V5M18 20v-6"/></svg>Meta</button>
   <button data-v="time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
     stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="3"/><circle cx="17" cy="7" r="2.4"/><path d="M2.5 19c.6-3 2.9-4.6 5.5-4.6S12.9 16 13.5 19"/><path d="M15.4 13.2c2.3.2 4.1 1.7 4.6 4.3"/></svg>Time</button>
+  <button data-v="reide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13H11l-1 9 8.5-11H12z"/></svg>Reide</button>
   <button data-v="import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Importar</button>
   <button data-v="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.6l2.5 5.3 5.5.8-4 4 .95 5.7L12 16.7 7.05 19.4 8 13.7l-4-4 5.5-.8z"/></svg>Salvos</button>
 </nav>
@@ -602,6 +621,443 @@ function pveStats(p,m,sombra,tipoAlvo){
 function cicloDPS(f,c){ // fórmula clássica de DPS por ciclo
   if(!f||!c) return 0;
   return (f.dps*c.eps + c.dps*f.eps)/(f.eps + c.eps);
+}
+
+
+// ================= motor de reide ========================================
+// Tudo aqui é independente do que está na tela: recebe IV e nível explícitos,
+// para poder rankear qualquer Pokémon sem depender do estado da aba Consultar.
+const NIVEL_REF=40;            // referência clássica de comparação entre atacantes
+const DEF_REF=200;             // defesa do chefe usada no modelo de dano
+
+function cpmDe(nivel){ const i=Math.round((nivel-1)*2);
+  return (i>=0&&i<CPMS.length)?CPMS[i]:CPMS[CPMS.length-1]; }
+function atkPve(p,ivA,nivel,sombra){ return (p.atk+ivA)*cpmDe(nivel)*(sombra?1.2:1); }
+function defPve(p,ivD,nivel,sombra){ return (p.def+ivD)*cpmDe(nivel)*(sombra?0.8333333:1); }
+function hpPve(p,ivH,nivel){ return Math.floor((p.hp+ivH)*cpmDe(nivel)); }
+
+function danoPve(p,m,atk,tiposAlvo){
+  if(!m.pveMs) return null;
+  let ef=1;
+  (tiposAlvo||[]).forEach(t=>{ if(t&&t!=='none') ef*=efic(m,t); });
+  return Math.floor(0.5*m.pvePw*(atk/DEF_REF)*stab(p,m)*ef)+1;
+}
+function statPve(p,m,atk,tiposAlvo){
+  if(!m.pveMs) return null;
+  const t=m.pveMs/1000, d=danoPve(p,m,atk,tiposAlvo);
+  return {dps:d/t, eps:Math.abs(m.pveEn)/t, dano:d};
+}
+// melhor combinação rápido+carregado; filtroCar limita o carregado a um tipo
+function melhorCombo(p,sombra,tiposAlvo,filtroCar,ivA,nivel){
+  const atk=atkPve(p, ivA==null?15:ivA, nivel||NIVEL_REF, sombra);
+  const rap=p.rap.map(([i])=>MV[i]).filter(m=>m&&m.pveMs);
+  let car=p.car.map(([i])=>MV[i]).filter(m=>m&&m.pveMs);
+  if(filtroCar) car=car.filter(m=>m.tipo===filtroCar);
+  if(!rap.length||!car.length) return null;
+  let melhor=null;
+  rap.forEach(f=>car.forEach(c=>{
+    const sf=statPve(p,f,atk,tiposAlvo), sc=statPve(p,c,atk,tiposAlvo);
+    if(!sf||!sc) return;
+    const dps=cicloDPS(sf,sc);
+    if(!melhor||dps>melhor.dps) melhor={dps,f,c};
+  }));
+  return melhor;
+}
+// quanto ele aguenta, em relação aos outros: produto de defesa por PS
+function resistePve(p,sombra,iv,nivel){
+  const d=defPve(p,(iv?iv[1]:15),nivel||NIVEL_REF,sombra);
+  const h=hpPve(p,(iv?iv[2]:15),nivel||NIVEL_REF);
+  return d*h;
+}
+
+let RANK_TIPO={};
+function rankingTipo(T){
+  if(RANK_TIPO[T]) return RANK_TIPO[T];
+  const out=[];
+  P.forEach(p=>{
+    [false,true].forEach(sombra=>{
+      if(sombra && !temSombroso(p)) return;
+      const m=melhorCombo(p,sombra,null,T,15,NIVEL_REF);
+      if(!m) return;
+      out.push({p, sombra, dps:m.dps, f:m.f, c:m.c, res:resistePve(p,sombra,null,NIVEL_REF)});
+    });
+  });
+  out.sort((a,b)=>b.dps-a.dps);
+  out.forEach((x,i)=>x.pos=i+1);
+  return RANK_TIPO[T]=out;
+}
+function posicaoNoTipo(p,sombra,T){
+  const lista=rankingTipo(T);
+  const i=lista.findIndex(x=>x.p.id===p.id && !!x.sombra===!!sombra);
+  if(i<0) return null;
+  const topo=lista[0]?lista[0].dps:1;
+  return {pos:i+1, total:lista.length, dps:lista[i].dps,
+          forca:lista[i].dps/topo,   // o quanto ele chega perto do melhor do tipo
+          f:lista[i].f, c:lista[i].c};
+}
+// os tipos em que este Pokémon rende melhor, pela posição relativa
+function melhoresTipos(p,sombra,quantos){
+  const out=[];
+  DB.types.forEach(T=>{
+    const r=posicaoNoTipo(p,sombra,T);
+    if(r) out.push({tipo:T, ...r, rel:r.pos/r.total});
+  });
+  // o que importa é o quanto ele chega perto do melhor daquele tipo,
+  // não a posição crua: lista grande faz desempenho médio parecer bom
+  out.sort((a,b)=>b.forca-a.forca);
+  return out.slice(0,quantos||3);
+}
+// perfeição de IV para reide: o DPS só depende do ataque
+function perfeicaoReide(p,ivA){
+  return (p.atk+ivA)/(p.atk+15);
+}
+
+
+// ---- cartão de reide no Consultar ---------------------------------------
+function cartaoReide(){
+  const p=S.p, sombra=S.sombra;
+  const tops=melhoresTipos(p,sombra,3);
+  if(!tops.length) return null;
+  const perf=perfeicaoReide(p,S.iv[0]);
+  const c=el('div','league reide');
+  c.style.setProperty('--c','#E8763A');
+
+  c.appendChild(el('div','top','<span class="bola">'+emblema('#E8763A')+'</span>'+
+    '<span class="lg">Reide</span><span class="meta">melhor DPS <b>'+
+    tops[0].dps.toFixed(1).replace('.',',')+'</b></span>'));
+
+  const big=el('div','big');
+  big.innerHTML='<div><div class="pct num" style="color:#E8763A">'+
+      (perf*100).toFixed(2).replace('.',',')+'<small>%</small></div>'+
+      '<div class="rot">do dano máximo</div></div>'+
+    '<div class="metabig" style="--c:#E8763A"><div class="p">#'+tops[0].pos+'</div>'+
+    '<div class="l">em '+(TIPO[tops[0].tipo]||tops[0].tipo)+'<br>de '+fmt(tops[0].total)+'</div></div>';
+  c.appendChild(big);
+
+  const lista=el('div','reidetipos');
+  tops.forEach((t,i)=>{
+    const cor=CORTIPO[t.tipo]||'#8895A6';
+    const d=el('div','rtipo');
+    d.innerHTML='<div class="rt-pos">'+(i+1)+'º</div>'+
+      '<div class="rt-chip">'+chipTipo(t.tipo)+'</div>'+
+      '<div class="rt-dados"><b>#'+fmt(t.pos)+'</b> de '+fmt(t.total)+
+        ' · '+Math.round(t.forca*100)+'% do melhor · DPS '+t.dps.toFixed(1).replace('.',',')+
+        '<div class="rt-mv">'+t.f.nome+' + '+t.c.nome+'</div></div>';
+    d.onclick=()=>{ S.rTipo=t.tipo; aba('reide'); pintarReide(); };
+    lista.appendChild(d);
+  });
+  c.appendChild(lista);
+
+  const nt=el('div','custo');
+  nt.style.setProperty('--c','#E8763A');
+  nt.innerHTML='<div class="cn">Comparado no <b>nível 40</b> com IV de ataque 15, contra um chefe '+
+    'de defesa 200 — é assim que atacantes se comparam entre si. '+
+    'Os <b>'+(S.iv[0]===15?'15':S.iv[0])+' de ataque</b> do seu rendem '+
+    (perf*100).toFixed(1).replace('.',',')+'% do dano de um 15. '+
+    'Defesa e PS não mudam o dano: mudam quanto ele aguenta antes de desmaiar.</div>';
+  c.appendChild(nt);
+  return c;
+}
+
+// ---- aba de reide --------------------------------------------------------
+function linhaAtacante(x, i, iv, nivel){
+  const d=el('div','mv evo'+(i===0?' best':''));
+  d.style.setProperty('--tc', CORTIPO[x.c.tipo]||'var(--gl)');
+  d.appendChild(elSprite(x.p));
+  const col=el('div','col');
+  const meu = iv ? melhorCombo(x.p,x.sombra,x.alvo||null,x.filtro||null,iv[0],nivel) : null;
+  col.innerHTML='<div class="l1"><span class="nm">'+x.p.nome+(x.sombra?' sombroso':'')+'</span>'+
+    (i===0?'<span class="badge rec">Melhor</span>':'')+
+    '<span class="sc">'+(meu?meu.dps:x.dps).toFixed(1).replace('.',',')+'</span></div>'+
+    '<div class="l2">'+x.f.nome+' + '+x.c.nome+'</div>'+
+    '<div class="l2" style="color:var(--fraco)">#'+fmt(x.pos||i+1)+
+      (x.total?' de '+fmt(x.total):'')+' · DPS'+
+      (meu?' com o seu IV '+iv.join('/'):' com IV 15 no nível 40')+'</div>';
+  d.appendChild(col);
+  d.onclick=()=>abrirPokemon(x.p,{sombra:x.sombra});
+  return d;
+}
+
+function pintarReide(){
+  const box=$('#reideout'); if(!box) return;
+  box.innerHTML='';
+
+  const segs=el('div','segs');
+  [['tipo','Por tipo'],['chefe','Contra um chefe'],['minha','Minha caixa']].forEach(([k,rot])=>{
+    const d=el('div',S.rModo===k?'on':'',rot);
+    d.onclick=()=>{ S.rModo=k; S.rVer=15; pintarReide(); };
+    segs.appendChild(d);
+  });
+  box.appendChild(segs);
+
+  if(S.rModo==='tipo') reidePorTipo(box);
+  else if(S.rModo==='chefe') reideContraChefe(box);
+  else reideMinhaCaixa(box);
+
+  box.appendChild(el('div','note','Todo DPS aqui é calculado contra um chefe de defesa 200, '+
+    'o padrão usado para comparar atacantes. Números maiores derrubam o chefe mais rápido.'));
+}
+
+function reidePorTipo(box){
+  const sc=el('div','scroll');
+  DB.types.forEach(t=>{
+    const on=S.rTipo===t, cor=CORTIPO[t]||'#8895A6';
+    const c=el('div','chip'+(on?' on':''), TIPO[t]||t);
+    c.style.cssText = on ? 'background:'+cor+';color:'+(TIPOCLARO.has(t)?'#2A2A20':'#fff')+
+                           ';border-color:'+cor
+                         : 'background:'+cor+'1F;color:'+cor;
+    c.onclick=()=>{ S.rTipo=t; S.rVer=15; pintarReide(); };
+    sc.appendChild(c);
+  });
+  box.appendChild(sc);
+
+  const T=S.rTipo;
+  const lista=rankingTipo(T);
+  const sec=el('div','sec');
+  sec.appendChild(el('h2',null,'Melhores atacantes de '+(TIPO[T]||T)));
+  sec.appendChild(el('div','eyebrow', lista.length+' Pokémon com golpe carregado de '+(TIPO[T]||T)));
+  lista.slice(0, S.rVer||15).forEach((x,i)=>sec.appendChild(linhaAtacante(x,i)));
+  if(lista.length>(S.rVer||15)){
+    const b=el('button','act ghost','Mostrar mais 15');
+    b.onclick=()=>{ S.rVer=(S.rVer||15)+15; pintarReide(); };
+    sec.appendChild(b);
+  }
+  box.appendChild(sec);
+
+  // o que esse tipo resolve
+  const bons=DB.types.filter(alvo=>DB.eff[T][DB.types.indexOf(alvo)]>1);
+  const ruins=DB.types.filter(alvo=>DB.eff[T][DB.types.indexOf(alvo)]<1);
+  const c=el('div','carta');
+  c.appendChild(el('div','tit','Contra quem levar '+(TIPO[T]||T)));
+  c.innerHTML+='<div class="tlinha"><div class="trot" style="color:#2E7DE8">Bate forte<div class="tmult">1,6×</div></div>'+
+    '<div class="tchips">'+bons.map(t=>chipTipo(t)).join('')+'</div></div>'+
+    '<div class="tlinha"><div class="trot" style="color:#C0392B">Desperdício<div class="tmult">0,63×</div></div>'+
+    '<div class="tchips">'+ruins.map(t=>chipTipo(t)).join('')+'</div></div>';
+  box.appendChild(c);
+}
+
+
+function reideContraChefe(box){
+  const busca=el('input');
+  busca.type='search'; busca.id='qchefe';
+  busca.placeholder='Qual é o chefe da reide?';
+  busca.setAttribute('autocomplete','off'); busca.setAttribute('autocorrect','off');
+  busca.setAttribute('autocapitalize','off'); busca.setAttribute('spellcheck','false');
+  busca.style.marginTop='10px';
+  busca.value=S.rChefeTxt||'';
+  busca.oninput=()=>{ S.rChefeTxt=busca.value; pintarAchadosChefe(); };
+  box.appendChild(busca);
+  const hits=el('div'); hits.id='chefehits'; box.appendChild(hits);
+
+  if(!S.rChefe){
+    const d=el('div','carta','<div class="empty">Digite o nome do chefe acima. '+
+      'Eu calculo o dano já considerando a tipagem dele — inclusive fraqueza dupla.</div>');
+    box.appendChild(d);
+    // atalho: os chefes de reide mais comuns são lendários de tipo puro
+    const sug=el('div','sec');
+    sug.appendChild(el('h2',null,'Exemplos para testar'));
+    ['rayquaza','mewtwo','giratina_altered','tyranitar','machamp','gengar']
+      .map(id=>BYID[id]).filter(Boolean).forEach(p=>{
+        const d=el('div','mv evo');
+        d.style.setProperty('--tc', CORTIPO[p.t1]||'var(--gl)');
+        d.appendChild(elSprite(p,'p'));
+        const col=el('div','col');
+        col.innerHTML='<div class="l1"><span class="nm">'+p.nome+'</span></div>'+
+          '<div class="l2">'+chipTipo(p.t1)+(p.t2!=='none'?' '+chipTipo(p.t2):'')+'</div>';
+        d.appendChild(col);
+        d.onclick=()=>{ S.rChefe=p.id; S.rChefeTxt=''; S.rVer=15; pintarReide(); };
+        sug.appendChild(d);
+      });
+    box.appendChild(sug);
+    return;
+  }
+
+  const chefe=BYID[S.rChefe];
+  const tipos=[chefe.t1, chefe.t2].filter(t=>t&&t!=='none');
+
+  // ficha do chefe
+  const ficha=el('div','carta');
+  const cab=el('div');
+  cab.style.cssText='display:flex;align-items:center;gap:11px';
+  cab.appendChild(elSprite(chefe));
+  cab.appendChild(el('div',null,'<div class="eyebrow">Chefe</div>'+
+    '<div style="font:800 20px var(--disp);letter-spacing:-.025em">'+chefe.nome+'</div>'+
+    '<div style="margin-top:4px">'+chipTipo(chefe.t1)+
+      (chefe.t2!=='none'?' '+chipTipo(chefe.t2):'')+'</div>'));
+  ficha.appendChild(cab);
+
+  const troca=el('button','act ghost','Trocar de chefe');
+  troca.onclick=()=>{ S.rChefe=null; pintarReide(); };
+  ficha.appendChild(troca);
+
+  // fraquezas dele, que é o que decide o que levar
+  const mult={};
+  DB.types.forEach(t=>{
+    let m=1; tipos.forEach(a=>{ m*=DB.eff[t][DB.types.indexOf(a)]; });
+    if(m!==1) mult[t]=m;
+  });
+  const dupla=Object.keys(mult).filter(t=>mult[t]>1.7);
+  const fraco=Object.keys(mult).filter(t=>mult[t]>1&&mult[t]<=1.7);
+  const resiste=Object.keys(mult).filter(t=>mult[t]<1);
+  let h='';
+  if(dupla.length) h+='<div class="tlinha"><div class="trot" style="color:#C0392B">Fraqueza dupla'+
+    '<div class="tmult">2,56×</div></div><div class="tchips">'+dupla.map(t=>chipTipo(t)).join('')+'</div></div>';
+  if(fraco.length) h+='<div class="tlinha"><div class="trot" style="color:#E8763A">Fraqueza'+
+    '<div class="tmult">1,6×</div></div><div class="tchips">'+fraco.map(t=>chipTipo(t)).join('')+'</div></div>';
+  if(resiste.length) h+='<div class="tlinha"><div class="trot" style="color:#2E9E6B">Resiste'+
+    '<div class="tmult">0,63×</div></div><div class="tchips">'+resiste.map(t=>chipTipo(t)).join('')+'</div></div>';
+  ficha.innerHTML+=h;
+  if(dupla.length)
+    ficha.appendChild(el('div','note','<b>Leve '+dupla.map(t=>TIPO[t]).join(' ou ')+'.</b> '+
+      'Fraqueza dupla é 2,56× de dano — vale mais que qualquer outra escolha aqui.'));
+  box.appendChild(ficha);
+
+  // melhores counters, já com a tipagem do chefe aplicada
+  const todos=[];
+  P.forEach(p=>{
+    [false,true].forEach(sombra=>{
+      if(sombra && !temSombroso(p)) return;
+      const m=melhorCombo(p,sombra,tipos,null,15,NIVEL_REF);
+      if(m) todos.push({p,sombra,dps:m.dps,f:m.f,c:m.c,alvo:tipos});
+    });
+  });
+  todos.sort((a,b)=>b.dps-a.dps);
+  todos.forEach((x,i)=>{x.pos=i+1; x.total=todos.length;});
+
+  const sec=el('div','sec');
+  sec.appendChild(el('h2',null,'Melhores contra '+chefe.nome));
+  todos.slice(0,S.rVer||15).forEach((x,i)=>sec.appendChild(linhaAtacante(x,i)));
+  if(todos.length>(S.rVer||15)){
+    const b=el('button','act ghost','Mostrar mais 15');
+    b.onclick=()=>{ S.rVer=(S.rVer||15)+15; pintarReide(); };
+    sec.appendChild(b);
+  }
+  box.appendChild(sec);
+
+  // o que VOCÊ tem — com o IV e o nível reais
+  const salvos=carregaSalvos();
+  const meu=el('div','sec');
+  meu.appendChild(el('h2',null,'O melhor que você tem'));
+  if(!salvos.length){
+    meu.appendChild(el('div','carta','<div class="empty">Salve seus Pokémon e eu digo qual '+
+      'dos seus levar em cada chefe.</div>'));
+  } else {
+    const meus=[];
+    salvos.forEach(s=>{
+      const p=BYID[s.id]; if(!p) return;
+      const nivel=s.nivel!=null?s.nivel:NIVEL_REF;
+      const m=melhorCombo(p,s.sombra,tipos,null,s.iv[0],nivel);
+      if(m) meus.push({p,sombra:s.sombra,dps:m.dps,f:m.f,c:m.c,iv:s.iv,nivel,
+                       temNivel:s.nivel!=null});
+    });
+    meus.sort((a,b)=>b.dps-a.dps);
+    if(!meus.length) meu.appendChild(el('div','carta','<div class="empty">Nenhum dos seus tem '+
+      'golpe útil contra esse chefe.</div>'));
+    meus.slice(0,8).forEach((x,i)=>{
+      const d=el('div','mv evo'+(i===0?' best':''));
+      d.style.setProperty('--tc', CORTIPO[x.c.tipo]||'var(--gl)');
+      d.appendChild(elSprite(x.p));
+      const col=el('div','col');
+      col.innerHTML='<div class="l1"><span class="nm">'+x.p.nome+(x.sombra?' sombroso':'')+'</span>'+
+        (i===0?'<span class="badge rec">Seu melhor</span>':'')+
+        '<span class="sc">'+x.dps.toFixed(1).replace('.',',')+'</span></div>'+
+        '<div class="l2">'+x.f.nome+' + '+x.c.nome+'</div>'+
+        '<div class="l2" style="color:var(--fraco)">IV '+x.iv.join('/')+' · '+
+          (x.temNivel?'nível '+String(x.nivel).replace('.',','):
+           '<span style="color:#C77B22">nível não informado, calculei no 40</span>')+'</div>';
+      d.appendChild(col);
+      d.onclick=()=>abrirPokemon(x.p,{sombra:x.sombra, iv:x.iv,
+        nivel:x.temNivel?x.nivel:null});
+      meu.appendChild(d);
+    });
+  }
+  box.appendChild(meu);
+}
+
+function pintarAchadosChefe(){
+  const cx=$('#chefehits'); if(!cx) return;
+  cx.innerHTML=''; cx.className='';
+  const q=norm(S.rChefeTxt||'');
+  if(q.length<2) return;
+  cx.className='on'; cx.id='chefehits';
+  const lista=el('div'); lista.id='results'; lista.className='on';
+  P.filter(p=>p.n.includes(q)).slice(0,8).forEach(p=>{
+    const d=el('div','hit');
+    d.appendChild(elSprite(p));
+    d.appendChild(el('b',null,p.nome));
+    d.appendChild(el('span','r', (TIPO[p.t1]||p.t1)+(p.t2!=='none'?'/'+(TIPO[p.t2]||p.t2):'')));
+    d.onclick=()=>{ S.rChefe=p.id; S.rChefeTxt=''; S.rVer=15; pintarReide(); };
+    lista.appendChild(d);
+  });
+  cx.appendChild(lista);
+}
+
+function reideMinhaCaixa(box){
+  const salvos=carregaSalvos();
+  const sec=el('div','sec');
+  sec.appendChild(el('h2',null,'Seus Pokémon como atacantes'));
+  if(!salvos.length){
+    sec.appendChild(el('div','carta','<div class="empty">Nada salvo ainda. '+
+      'Salve em Consultar e eu monto seu time de reide.</div>'));
+    box.appendChild(sec); return;
+  }
+  const semNivel=salvos.filter(s=>s.nivel==null).length;
+  if(semNivel)
+    sec.appendChild(el('div','note','<b>'+semNivel+' sem nível informado.</b> '+
+      'Para esses eu calculo no nível 40. Informe o PC na aba Salvos para o número virar o real.'));
+
+  // o melhor tipo de cada um dos seus
+  const linhas=[];
+  salvos.forEach(s=>{
+    const p=BYID[s.id]; if(!p) return;
+    const nivel=s.nivel!=null?s.nivel:NIVEL_REF;
+    const tops=melhoresTipos(p,s.sombra,1);
+    if(!tops.length) return;
+    const m=melhorCombo(p,s.sombra,null,tops[0].tipo,s.iv[0],nivel);
+    if(!m) return;
+    linhas.push({p, s, nivel, tipo:tops[0].tipo, pos:tops[0].pos, total:tops[0].total,
+                 dps:m.dps, f:m.f, c:m.c, temNivel:s.nivel!=null});
+  });
+  linhas.sort((a,b)=>a.pos-b.pos);
+  linhas.forEach((x,i)=>{
+    const d=el('div','mv evo'+(i===0?' best':''));
+    d.style.setProperty('--tc', CORTIPO[x.tipo]||'var(--gl)');
+    d.appendChild(elSprite(x.p));
+    const col=el('div','col');
+    col.innerHTML='<div class="l1"><span class="nm">'+x.p.nome+(x.s.sombra?' sombroso':'')+'</span>'+
+      '<span class="sc">'+x.dps.toFixed(1).replace('.',',')+'</span></div>'+
+      '<div class="l2">'+chipTipo(x.tipo)+' <b>#'+fmt(x.pos)+'</b> de '+fmt(x.total)+'</div>'+
+      '<div class="l2" style="color:var(--fraco)">'+x.f.nome+' + '+x.c.nome+' · IV '+x.s.iv.join('/')+
+        (x.temNivel?' · nível '+String(x.nivel).replace('.',','):'')+'</div>';
+    d.appendChild(col);
+    d.onclick=()=>abrirPokemon(x.p,{sombra:x.s.sombra, iv:x.s.iv,
+      nivel:x.temNivel?x.nivel:null});
+    sec.appendChild(d);
+  });
+  box.appendChild(sec);
+
+  // onde a caixa dele está descoberta
+  const porTipo={};
+  salvos.forEach(s=>{
+    const p=BYID[s.id]; if(!p) return;
+    DB.types.forEach(T=>{
+      const r=posicaoNoTipo(p,s.sombra,T);
+      if(r && (!porTipo[T] || r.pos<porTipo[T].pos)) porTipo[T]={pos:r.pos, nome:p.nome};
+    });
+  });
+  const fortes=DB.types.filter(T=>porTipo[T]&&porTipo[T].pos<=50);
+  const fracos=DB.types.filter(T=>!porTipo[T]||porTipo[T].pos>150);
+  const c=el('div','carta');
+  c.appendChild(el('div','tit','Cobertura da sua caixa'));
+  let h='';
+  if(fortes.length) h+='<div class="tlinha"><div class="trot" style="color:#2E9E6B">Bem servido</div>'+
+    '<div class="tchips">'+fortes.map(t=>chipTipo(t)).join('')+'</div></div>';
+  if(fracos.length) h+='<div class="tlinha"><div class="trot" style="color:#C0392B">Descoberto</div>'+
+    '<div class="tchips">'+fracos.map(t=>chipTipo(t)).join('')+'</div></div>';
+  c.innerHTML+=h||'<div class="note">Sem dados suficientes.</div>';
+  c.appendChild(el('div','note','<b>Bem servido</b> = você tem alguém no top 50 daquele tipo. '+
+    '<b>Descoberto</b> = seu melhor passa do 150º, então vale caçar um atacante desse tipo.'));
+  box.appendChild(c);
 }
 
 // ================= leitura de print =====================================
@@ -1323,7 +1779,7 @@ function manual(txt,ok){
 }
 
 // ---- estado -------------------------------------------------------------
-const S = {p:null, sombra:false, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
+const S = {p:null, sombra:false, rModo:'tipo', rTipo:'fire', rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
 const $ = s => document.querySelector(s);
 const el = (t,c,html,txt)=>{const e=document.createElement(t); if(c)e.className=c;
   if(html!=null)e.innerHTML=html; if(txt!=null)e.textContent=txt; return e};
@@ -1569,6 +2025,7 @@ function pintarCards(){
   ['gl','ul','ml'].forEach(lg=>cards.appendChild(cartao(lg)));
   const ev=$('#evos');
   if(ev){ ev.innerHTML=''; const s2=secaoEvolucoes(); if(s2) ev.appendChild(s2); }
+  const cr=cartaoReide(); if(cr) cards.appendChild(cr);
 }
 
 function cartao(lg){
@@ -4183,6 +4640,7 @@ function aba(v){
   if(v==='saved') pintarSalvos();
   if(v==='meta') pintarMeta();
   if(v==='time'){ pintarProfNota(); pintarTime(); }
+  if(v==='reide') pintarReide();
   window.scrollTo(0,0);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>aba(b.dataset.v));
