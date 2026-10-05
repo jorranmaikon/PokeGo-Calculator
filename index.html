@@ -385,7 +385,7 @@ footer b{color:var(--tinta2)}
   <div>
     <h1>Stat Product</h1>
     <div class="sub">IV, ligas e ataques · base PvPoke de <span id="gmdate"></span><br>
-      <span style="opacity:.75">versão <b id="verapp">04/10 21:42</b></span></div>
+      <span style="opacity:.75">versão <b id="verapp">04/10 21:53</b></span></div>
   </div>
 </header>
 
@@ -744,10 +744,21 @@ function melhoresTipos(p,sombra,quantos){
   out.sort((a,b)=>b.forca-a.forca);
   return out.slice(0,quantos||3);
 }
-// perfeição de IV para reide: o DPS só depende do ataque
-function perfeicaoReide(p,ivA){
-  return (p.atk+ivA)/(p.atk+15);
+// Perfeição de reide.
+// O DPS puro só depende do ataque, mas o que a comunidade usa para comparar
+// atacantes é DPS^3 x TDO (dano total até desmaiar). Como TDO = DPS x PS x Def
+// dividido por uma constante do chefe, a métrica vira ataque^4 x def x PS —
+// e numa razão entre dois IVs do MESMO Pokémon toda constante se cancela.
+// Tiro a raiz sexta para o número voltar a uma escala legível.
+function poderReide(p,iv){
+  return Math.pow(Math.pow(p.atk+iv[0],4)*(p.def+iv[1])*(p.hp+iv[2]), 1/6);
 }
+function perfeicaoReide(p,iv){
+  const v=Array.isArray(iv)?iv:[iv,15,15];
+  return poderReide(p,v)/poderReide(p,[15,15,15]);
+}
+// o dano por segundo isolado, que é o que importa quando a reide é contra o relógio
+function perfeicaoDPS(p,ivA){ return (p.atk+ivA)/(p.atk+15); }
 
 
 // ---- cartão de reide no Consultar ---------------------------------------
@@ -755,7 +766,8 @@ function cartaoReide(){
   const p=S.p, sombra=S.sombra;
   const tops=melhoresTipos(p,sombra,3);
   if(!tops.length) return null;
-  const perf=perfeicaoReide(p,S.iv[0]);
+  const perf=perfeicaoReide(p,S.iv);
+  const perfD=perfeicaoDPS(p,S.iv[0]);
   const c=el('div','league reide');
   c.style.setProperty('--c','#E8763A');
 
@@ -766,7 +778,7 @@ function cartaoReide(){
   const big=el('div','big');
   big.innerHTML='<div><div class="pct num" style="color:#E8763A">'+
       (perf*100).toFixed(2).replace('.',',')+'<small>%</small></div>'+
-      '<div class="rot">do dano máximo</div></div>'+
+      '<div class="rot">de atacante perfeito</div></div>'+
     '<div class="metabig" style="--c:#E8763A"><div class="p">#'+tops[0].pos+'</div>'+
     '<div class="l">em '+(TIPO[tops[0].tipo]||tops[0].tipo)+'<br>de '+fmt(tops[0].total)+'</div></div>';
   c.appendChild(big);
@@ -787,11 +799,13 @@ function cartaoReide(){
 
   const nt=el('div','custo');
   nt.style.setProperty('--c','#E8763A');
-  nt.innerHTML='<div class="cn">Comparado no <b>nível 40</b> com IV de ataque 15, contra um chefe '+
-    'de defesa 200 — é assim que atacantes se comparam entre si. '+
-    'Os <b>'+(S.iv[0]===15?'15':S.iv[0])+' de ataque</b> do seu rendem '+
-    (perf*100).toFixed(1).replace('.',',')+'% do dano de um 15. '+
-    'Defesa e PS não mudam o dano: mudam quanto ele aguenta antes de desmaiar.</div>';
+  nt.innerHTML='<div class="cn">Os <b>'+(perf*100).toFixed(1).replace('.',',')+'%</b> pesam os três IVs '+
+    'como a comunidade compara atacantes: o ataque conta quatro vezes mais, porque é ele que '+
+    'derruba o chefe, e defesa e PS entram porque sobreviver mais tempo rende mais dano no total.'+
+    '<br>Só de <b>dano por segundo</b>, que é o que importa quando a reide é contra o relógio, '+
+    'ele rende <b>'+(perfD*100).toFixed(1).replace('.',',')+'%</b> — aí só o ataque conta.'+
+    '<br>O ranking por tipo compara todo mundo no <b>nível 40 com IV 15</b>, contra um chefe de '+
+    'defesa 200.</div>';
   c.appendChild(nt);
   return c;
 }
@@ -893,30 +907,62 @@ function reideContraChefe(box){
   busca.setAttribute('autocapitalize','off'); busca.setAttribute('spellcheck','false');
   busca.style.marginTop='10px';
   busca.value=S.rChefeTxt||'';
-  busca.oninput=()=>{ S.rChefeTxt=busca.value; pintarAchadosChefe(); };
+  busca.oninput=()=>{ S.rChefeTxt=busca.value; S.rVerC=24; pintarReide();
+    const b2=$('#qchefe'); if(b2){ b2.focus(); const n=b2.value.length; b2.setSelectionRange(n,n); } };
+  busca.placeholder='Filtrar a lista (opcional)';
   box.appendChild(busca);
-  const hits=el('div'); hits.id='chefehits'; box.appendChild(hits);
 
   if(!S.rChefe){
-    const d=el('div','carta','<div class="empty">Digite o nome do chefe acima. '+
-      'Eu calculo o dano já considerando a tipagem dele — inclusive fraqueza dupla.</div>');
-    box.appendChild(d);
-    // atalho: os chefes de reide mais comuns são lendários de tipo puro
-    const sug=el('div','sec');
-    sug.appendChild(el('h2',null,'Exemplos para testar'));
-    ['rayquaza','mewtwo','giratina_altered','tyranitar','machamp','gengar']
-      .map(id=>BYID[id]).filter(Boolean).forEach(p=>{
-        const d=el('div','mv evo');
-        d.style.setProperty('--tc', CORTIPO[p.t1]||'var(--gl)');
-        d.appendChild(elSprite(p,'p'));
-        const col=el('div','col');
-        col.innerHTML='<div class="l1"><span class="nm">'+p.nome+'</span></div>'+
-          '<div class="l2">'+chipTipo(p.t1)+(p.t2!=='none'?' '+chipTipo(p.t2):'')+'</div>';
-        d.appendChild(col);
-        d.onclick=()=>{ S.rChefe=p.id; S.rChefeTxt=''; S.rVer=15; pintarReide(); };
-        sug.appendChild(d);
-      });
-    box.appendChild(sug);
+    // quem costuma aparecer como chefe: lendários (bit 1), ultra bestas (2),
+    // míticos (8) e os especiais tipo Meltan/Shaymin (32)
+    const lend = p => (p.fl & 43) !== 0;
+    const segs=el('div','segs');
+    segs.style.marginTop='10px';
+    [['lend','Lendários'],['fortes','Mais fortes'],['todos','Todos']].forEach(([k,rot])=>{
+      const d=el('div', S.rLista===k?'on':'', rot);
+      d.onclick=()=>{ S.rLista=k; S.rVerC=24; pintarReide(); };
+      segs.appendChild(d);
+    });
+    box.appendChild(segs);
+
+    const q=norm(S.rChefeTxt||'');
+    let lista=P.filter(p=>{
+      if(q && !p.n.includes(q)) return false;
+      if(S.rLista==='lend') return lend(p);
+      return true;
+    });
+    // dificuldade: o que ele tem de ataque, defesa e PS juntos
+    lista.forEach(p=>p._dif=Math.pow(p.atk*p.def*p.hp,1/3));
+    if(S.rLista==='todos' && !q) lista.sort((a,b)=>a.dex-b.dex);
+    else lista.sort((a,b)=>b._dif-a._dif);
+
+    box.appendChild(el('div','eyebrow', lista.length+(q?' encontrados':
+      S.rLista==='lend'?' lendários, míticos e ultra bestas — os chefes mais comuns':
+      S.rLista==='fortes'?' Pokémon, do mais duro para o mais fácil':' Pokémon, por número da Pokédex')));
+
+    const lim=S.rVerC||24;
+    lista.slice(0,lim).forEach(p=>{
+      const d=el('div','mv evo');
+      d.style.setProperty('--tc', CORTIPO[p.t1]||'var(--gl)');
+      d.appendChild(elSprite(p,'p'));
+      const col=el('div','col');
+      col.innerHTML='<div class="l1"><span class="nm">'+p.nome+'</span>'+
+        '<span class="sc" style="font-size:12px;color:var(--fraco)">#'+p.dex+'</span></div>'+
+        '<div class="l2">'+chipTipo(p.t1)+(p.t2!=='none'?' '+chipTipo(p.t2):'')+'</div>';
+      d.appendChild(col);
+      d.onclick=()=>{ S.rChefe=p.id; S.rChefeTxt=''; S.rVer=15; pintarReide(); };
+      box.appendChild(d);
+    });
+    if(lista.length>lim){
+      const b=el('button','act ghost','Mostrar mais '+Math.min(24,lista.length-lim));
+      b.onclick=()=>{ S.rVerC=lim+24; pintarReide(); };
+      box.appendChild(b);
+    }
+    if(!lista.length)
+      box.appendChild(el('div','carta','<div class="empty">Nenhum com esse nome.</div>'));
+    box.appendChild(el('div','note','A busca é opcional — serve para achar rápido. '+
+      'O jogo troca os chefes toda temporada, então listo os candidatos em vez de fingir '+
+      'que sei a escalação de hoje.'));
     return;
   }
 
@@ -1829,7 +1875,7 @@ function manual(txt,ok){
 }
 
 // ---- estado -------------------------------------------------------------
-const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
+const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, rLista:'lend', rVerC:24, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
 const $ = s => document.querySelector(s);
 const el = (t,c,html,txt)=>{const e=document.createElement(t); if(c)e.className=c;
   if(html!=null)e.innerHTML=html; if(txt!=null)e.textContent=txt; return e};
