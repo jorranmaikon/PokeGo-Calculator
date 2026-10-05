@@ -90,6 +90,13 @@ button.ghost{background:var(--carta);color:var(--tinta2);border:1.5px solid var(
   filter:drop-shadow(0 2px 3px rgba(22,33,46,.18))}
 .sprite.g{width:104px;height:104px}
 .sprite.p{width:34px;height:34px}
+.sprite.mg{position:relative}
+.sprite.mg:after{content:'MEGA';position:absolute;left:50%;bottom:-3px;transform:translateX(-50%);
+  font:800 7px var(--disp);letter-spacing:.07em;line-height:1.5;padding:0 4px;border-radius:99px;
+  background:linear-gradient(90deg,#8E44AD,#E8763A);color:#fff;
+  box-shadow:0 1px 3px rgba(22,33,46,.35)}
+.sprite.p.mg:after{content:'M';font-size:7px;padding:0 3.5px;bottom:-2px}
+.sprite.g.mg:after{display:none}
 
 /* ---------- herói ---------- */
 .heroi{position:relative;border-radius:26px;overflow:hidden;margin-bottom:14px;
@@ -385,7 +392,7 @@ footer b{color:var(--tinta2)}
   <div>
     <h1>Stat Product</h1>
     <div class="sub">IV, ligas e ataques · base PvPoke de <span id="gmdate"></span><br>
-      <span style="opacity:.75">versão <b id="verapp">04/10 22:02</b></span></div>
+      <span style="opacity:.75">versão <b id="verapp">04/10 23:40 · megas</b></span></div>
   </div>
 </header>
 
@@ -510,9 +517,29 @@ const P = DB.pokemon.map(a=>({id:a[0],nome:a[1],t1:a[2],t2:a[3],atk:a[4],def:a[5
 const MV = DB.mv.map(a=>({id:a[0],en:a[1],tipo:a[2],pw:a[3],en_:a[4],eg:a[5],tn:a[6],
   pvePw:a[7],pveMs:a[8],pveEn:a[9],buff:a[10],rapido:!!a[11],pt:a[12],
   nome:a[12]||a[1], sub:(a[12]&&a[12]!==a[1])?a[1]:''}));
+// ---- mega evoluções (do game master; não existem no PvP) ---------------
+const MEGAS = [{"id":"venusaur_mega","nome":"Mega Venusaur","t1":"grass","t2":"poison","atk":241,"def":246,"hp":190,"fl":64,"lf":1,"rap":[[231,0],[310,0]],"car":[[265,0],[206,0],[270,0],[264,0],[102,0]],"fam":-1,"dex":3,"evos":[],"spr":"3","mega":1,"megaDe":"venusaur"},{"id":"charizard_mega_x","nome":"Mega X Charizard","t1":"fire","t2":"dragon","atk":273,"def":213,"hp":186,"fl":64,"lf":1,"rap":[[89,0],[6,0],[79,0],[326,0],[65,0]],"car":[[86,0],[66,0],[202,0],[5,0],[21,0],[90,0]],"fam":-1,"dex":6,"evos":[],"spr":"6","mega":1,"megaDe":"charizard"},{"id":"charizard_mega_y","nome":"Mega Y Charizard","t1":"fire","t2":"flying","atk":319,"def":212,"hp":186,"fl":64,"lf":1,"rap":[[89,0],[6,0],[79,0],[326,0],[65,0]],"car":[[86,0],[66,0],[202,0],[5,0],[21,0],[90,0]],"fam":-1,"dex":6,"evos":[],"spr":"6","mega":1,"megaDe":"charizard"},{"id":"blastoise_mega","nome":"Mega Blastoise","t1":"water","t2":"none","atk":264,"def":237,"hp":188,"fl":64,"lf":1,"rap":[[315,0],[20,0],[242,0]],"car":[[94,0],[149,0],[145,0],[262,0],[144,0]],"fam":-1,"dex":9,"evos":[],"spr":"9","mega":1,"megaDe":"blastoise"},{"id":"beedrill_mega","nome":"Mega Beedrill","t1":"bug","t2":"poison","atk":303,"def":148,"hp":163,"fl":64,"lf":1,"rap":[[157,0],[210,0],[211,0],[35,0]],"car":[[265,0],[3,0],[328,0],[85,0],[73,0]],"fam":-1,"dex":15,"evos":[],"spr":"15","mega":1,"megaDe":"beedrill"},{"id":"pidgeot_mega","nome":"Mega Pidgeot","t1":"normal","t2":"flying","atk":280,"def":175,"hp":195,"fl":64,"lf":1,"rap":[[6,0],[277,0],[326,0],[117,0]],"car":[[143,0],[3,0],[28,0],[83,0],[120,0],[307,0],[5,0]],"fam":-1,"dex":18,"evos":[],"spr":"18","mega":1,"megaDe":"pidgeot"},{"id":"raichu_mega_x","nome":"Mega X Raichu","t1":"electric","t2":"none","atk":277,"def":203,"hp":155,"fl":64,"lf":1,"rap":[[311,0],[272,0],[41,0],[301,0]],"car":[[30,0],[300,0],[325,0],[262,0],[303,0],[286,0],[296,0]],"fam":-1,"dex":26,"evos":[],"spr":"26","mega":1,"megaDe":"raichu"},{"id":"raichu_mega_y","nome":"Mega Y Raichu","t1":"electric","t2":"none","atk":339,"def":157,"hp":155,"fl":64,"lf":1,"rap":[[311,0],[272,0],[41,0],[301,0]],"car":[[30,0],[300,0],[325,0],[262,0],[303,0],[286,0],[296,0]],"fam":-1,"dex":26,"evos":[],"spr":"26","mega":1,"megaDe":"raichu"},{"id":"alakazam_mega","nome":"Mega Alakazam","t1":"psychic","t2":"none","atk":367,"def":207,"hp":146,"fl":64,"lf":1,"rap":[[224,0],[45,0],[46,0]],"car":[[98,0],[254,0],[88,0],[55,0],[221,0]],"fam":-1,"dex":65,"evos":[],"spr":"65","mega":1,"megaDe":"alakazam"},{"id":"victreebel_mega","nome":"Mega Victreebel","t1":"grass","t2":"poison","atk":265,"def":181,"hp":190,"fl":64,"lf":1,"rap":[[231,0],[0,0],[173,0]],"car":[[163,0],[265,0],[270,0],[165,0],[1,0]],"fam":-1,"dex":71,"evos":[],"spr":"71","mega":1,"megaDe":"victreebel"},{"id":"slowbro_mega","nome":"Mega Slowbro","t1":"water","t2":"psychic","atk":224,"def":259,"hp":216,"fl":64,"lf":1,"rap":[[315,0],[45,0]],"car":[[317,0],[221,0],[149,0],[248,0],[71,0],[286,0]],"fam":-1,"dex":80,"evos":[],"spr":"80","mega":1,"megaDe":"slowbro"},{"id":"gengar_mega","nome":"Mega Gengar","t1":"ghost","t2":"poison","atk":349,"def":199,"hp":155,"fl":64,"lf":1,"rap":[[283,0],[122,0],[256,0],[166,0]],"car":[[254,0],[98,0],[265,0],[71,0],[266,0],[54,0],[221,0],[258,0]],"fam":-1,"dex":94,"evos":[],"spr":"94","mega":1,"megaDe":"gengar"},{"id":"kangaskhan_mega","nome":"Mega Kangaskhan","t1":"normal","t2":"none","atk":246,"def":210,"hp":233,"fl":64,"lf":1,"rap":[[191,0],[169,0]],"car":[[50,0],[77,0],[201,0],[216,0],[30,0],[278,0]],"fam":-1,"dex":115,"evos":[],"spr":"115","mega":1,"megaDe":"kangaskhan"},{"id":"starmie_mega","nome":"Mega Starmie","t1":"water","t2":"psychic","atk":276,"def":229,"hp":155,"fl":64,"lf":1,"rap":[[315,0],[227,0],[289,0]],"car":[[145,0],[215,0],[221,0],[296,0],[149,0],[220,0],[286,0],[8,0]],"fam":-1,"dex":121,"evos":[],"spr":"121","mega":1,"megaDe":"starmie"},{"id":"pinsir_mega","nome":"Mega Pinsir","t1":"bug","t2":"flying","atk":305,"def":231,"hp":163,"fl":64,"lf":1,"rap":[[238,0],[35,0],[105,0]],"car":[[309,0],[328,0],[44,0],[285,0],[282,0]],"fam":-1,"dex":127,"evos":[],"spr":"127","mega":1,"megaDe":"pinsir"},{"id":"gyarados_mega","nome":"Mega Gyarados","t1":"water","t2":"dark","atk":292,"def":247,"hp":216,"fl":64,"lf":1,"rap":[[20,0],[314,0],[65,0],[69,0]],"car":[[145,0],[50,0],[201,0],[307,0],[68,0],[10,0]],"fam":-1,"dex":130,"evos":[],"spr":"130","mega":1,"megaDe":"gyarados"},{"id":"aerodactyl_mega","nome":"Mega Aerodactyl","t1":"rock","t2":"flying","atk":292,"def":210,"hp":190,"fl":64,"lf":1,"rap":[[277,0],[20,0],[239,0],[65,0]],"car":[[7,0],[158,0],[147,0],[237,0],[78,0]],"fam":-1,"dex":142,"evos":[],"spr":"142","mega":1,"megaDe":"aerodactyl"},{"id":"dragonite_mega","nome":"Mega Dragonite","t1":"dragon","t2":"flying","atk":299,"def":255,"hp":209,"fl":64,"lf":1,"rap":[[69,0],[277,0],[65,0]],"car":[[143,0],[147,0],[201,0],[66,0],[285,0],[300,0],[63,0],[68,0]],"fam":-1,"dex":149,"evos":[],"spr":"149","mega":1,"megaDe":"dragonite"},{"id":"mewtwo_mega_x","nome":"Mega X Mewtwo","t1":"psychic","t2":"fighting","atk":399,"def":215,"hp":228,"fl":64,"lf":1,"rap":[[224,0],[45,0],[46,0]],"car":[[221,0],[297,0],[149,0],[98,0],[90,0],[226,0],[254,0],[147,0]],"fam":-1,"dex":150,"evos":[],"spr":"150","mega":1,"megaDe":"mewtwo"},{"id":"mewtwo_mega_y","nome":"Mega Y Mewtwo","t1":"psychic","t2":"none","atk":413,"def":223,"hp":228,"fl":64,"lf":1,"rap":[[224,0],[45,0],[46,0]],"car":[[221,0],[297,0],[149,0],[98,0],[90,0],[226,0],[254,0],[147,0]],"fam":-1,"dex":150,"evos":[],"spr":"150","mega":1,"megaDe":"mewtwo"},{"id":"ampharos_mega","nome":"Mega Ampharos","t1":"electric","t2":"dragon","atk":294,"def":203,"hp":207,"fl":64,"lf":1,"rap":[[40,0],[311,0]],"car":[[330,0],[98,0],[296,0],[215,0],[300,0],[32,0],[303,0],[68,0]],"fam":-1,"dex":181,"evos":[],"spr":"181","mega":1,"megaDe":"ampharos"},{"id":"steelix_mega","nome":"Mega Steelix","t1":"steel","t2":"ground","atk":212,"def":327,"hp":181,"fl":64,"lf":1,"rap":[[159,0],[69,0],[299,0]],"car":[[77,0],[121,0],[50,0],[222,0],[29,0]],"fam":-1,"dex":208,"evos":[],"spr":"208","mega":1,"megaDe":"steelix"},{"id":"scizor_mega","nome":"Mega Scizor","t1":"bug","t2":"steel","atk":279,"def":250,"hp":172,"fl":64,"lf":1,"rap":[[38,0],[105,0]],"car":[[328,0],[158,0],[195,0],[303,0]],"fam":-1,"dex":212,"evos":[],"spr":"212","mega":1,"megaDe":"scizor"},{"id":"heracross_mega","nome":"Mega Heracross","t1":"bug","t2":"fighting","atk":334,"def":223,"hp":190,"fl":64,"lf":1,"rap":[[46,0],[281,0],[105,0]],"car":[[176,0],[44,0],[77,0],[236,0],[308,0],[240,0]],"fam":-1,"dex":214,"evos":[],"spr":"214","mega":1,"megaDe":"heracross"},{"id":"skarmory_mega","nome":"Mega Skarmory","t1":"steel","t2":"flying","atk":273,"def":228,"hp":163,"fl":64,"lf":1,"rap":[[277,0],[6,0]],"car":[[28,0],[263,0],[94,0]],"fam":-1,"dex":227,"evos":[],"spr":"227","mega":1,"megaDe":"skarmory"},{"id":"houndoom_mega","nome":"Mega Houndoom","t1":"dark","t2":"fire","atk":289,"def":194,"hp":181,"fl":64,"lf":1,"rap":[[268,0],[87,0]],"car":[[50,0],[86,0],[100,0],[90,0]],"fam":-1,"dex":229,"evos":[],"spr":"229","mega":1,"megaDe":"houndoom"},{"id":"tyranitar_mega","nome":"Mega Tyranitar","t1":"rock","t2":"dark","atk":309,"def":276,"hp":225,"fl":64,"lf":1,"rap":[[20,0],[159,0],[65,0],[267,0]],"car":[[86,0],[50,0],[279,0],[32,0]],"fam":-1,"dex":248,"evos":[],"spr":"248","mega":1,"megaDe":"tyranitar"},{"id":"sceptile_mega","nome":"Mega Sceptile","t1":"grass","t2":"dragon","atk":320,"def":186,"hp":172,"fl":64,"lf":1,"rap":[[105,0],[39,0]],"car":[[163,0],[3,0],[77,0],[66,0],[29,0],[102,0]],"fam":-1,"dex":254,"evos":[],"spr":"254","mega":1,"megaDe":"sceptile"},{"id":"blaziken_mega","nome":"Mega Blaziken","t1":"fire","t2":"fighting","atk":329,"def":168,"hp":190,"fl":64,"lf":1,"rap":[[46,0],[89,0],[79,0]],"car":[[98,0],[202,0],[28,0],[22,0],[12,0],[21,0],[279,0]],"fam":-1,"dex":257,"evos":[],"spr":"257","mega":1,"megaDe":"blaziken"},{"id":"swampert_mega","nome":"Mega Swampert","t1":"water","t2":"ground","atk":283,"def":218,"hp":225,"fl":64,"lf":1,"rap":[[190,0],[315,0]],"car":[[77,0],[266,0],[286,0],[188,0],[264,0],[144,0]],"fam":-1,"dex":260,"evos":[],"spr":"260","mega":1,"megaDe":"swampert"},{"id":"gardevoir_mega","nome":"Mega Gardevoir","t1":"psychic","t2":"fairy","atk":326,"def":229,"hp":169,"fl":64,"lf":1,"rap":[[45,0],[40,0],[41,0],[173,0]],"car":[[221,0],[55,0],[254,0],[305,0],[288,0]],"fam":-1,"dex":282,"evos":[],"spr":"282","mega":1,"megaDe":"gardevoir"},{"id":"sableye_mega","nome":"Mega Sableye","t1":"dark","t2":"ghost","atk":151,"def":216,"hp":137,"fl":64,"lf":1,"rap":[[256,0],[84,0]],"car":[[215,0],[100,0],[259,0],[55,0],[71,0]],"fam":-1,"dex":302,"evos":[],"spr":"302","mega":1,"megaDe":"sableye"},{"id":"mawile_mega","nome":"Mega Mawile","t1":"steel","t2":"fairy","atk":188,"def":217,"hp":137,"fl":64,"lf":1,"rap":[[20,0],[11,0],[151,0],[87,0],[82,0]],"car":[[207,0],[309,0],[158,0],[216,0]],"fam":-1,"dex":303,"evos":[],"spr":"303","mega":1,"megaDe":"mawile"},{"id":"aggron_mega","nome":"Mega Aggron","t1":"steel","t2":"rock","atk":247,"def":331,"hp":172,"fl":64,"lf":1,"rap":[[69,0],[159,0],[267,0],[179,0]],"car":[[296,0],[279,0],[121,0],[240,0],[180,0]],"fam":-1,"dex":306,"evos":[],"spr":"306","mega":1,"megaDe":"aggron"},{"id":"medicham_mega","nome":"Mega Medicham","t1":"fighting","t2":"psychic","atk":205,"def":179,"hp":155,"fl":64,"lf":1,"rap":[[224,0],[46,0]],"car":[[152,0],[221,0],[76,0],[216,0]],"fam":-1,"dex":308,"evos":[],"spr":"308","mega":1,"megaDe":"medicham"},{"id":"manectric_mega","nome":"Mega Manectric","t1":"electric","t2":"none","atk":286,"def":179,"hp":172,"fl":64,"lf":1,"rap":[[268,0],[40,0],[299,0]],"car":[[296,0],[325,0],[91,0],[202,0],[222,0]],"fam":-1,"dex":310,"evos":[],"spr":"310","mega":1,"megaDe":"manectric"},{"id":"sharpedo_mega","nome":"Mega Sharpedo","t1":"water","t2":"dark","atk":289,"def":144,"hp":172,"fl":64,"lf":1,"rap":[[20,0],[314,0]],"car":[[145,0],[50,0],[209,0]],"fam":-1,"dex":319,"evos":[],"spr":"319","mega":1,"megaDe":"sharpedo"},{"id":"camerupt_mega","nome":"Mega Camerupt","t1":"fire","t2":"ground","atk":253,"def":183,"hp":172,"fl":64,"lf":1,"rap":[[79,0],[238,0],[156,0]],"car":[[77,0],[202,0],[270,0],[78,0],[240,0],[249,0]],"fam":-1,"dex":323,"evos":[],"spr":"323","mega":1,"megaDe":"camerupt"},{"id":"altaria_mega","nome":"Mega Altaria","t1":"dragon","t2":"fairy","atk":222,"def":218,"hp":181,"fl":64,"lf":1,"rap":[[205,0],[65,0]],"car":[[263,0],[55,0],[68,0],[90,0],[186,0]],"fam":-1,"dex":334,"evos":[],"spr":"334","mega":1,"megaDe":"altaria"},{"id":"banette_mega","nome":"Mega Banette","t1":"ghost","t2":"none","atk":312,"def":160,"hp":162,"fl":64,"lf":1,"rap":[[122,0],[256,0]],"car":[[254,0],[55,0],[296,0]],"fam":-1,"dex":354,"evos":[],"spr":"354","mega":1,"megaDe":"banette"},{"id":"absol_mega","nome":"Mega Absol","t1":"dark","t2":"none","atk":314,"def":130,"hp":163,"fl":64,"lf":1,"rap":[[224,0],[268,0]],"car":[[54,0],[296,0],[176,0],[204,0],[32,0]],"fam":-1,"dex":359,"evos":[],"spr":"359","mega":1,"megaDe":"absol"},{"id":"glalie_mega","nome":"Mega Glalie","t1":"ice","t2":"none","atk":252,"def":168,"hp":190,"fl":64,"lf":1,"rap":[[153,0],[103,0],[242,0],[214,0]],"car":[[16,0],[118,0],[254,0]],"fam":-1,"dex":362,"evos":[],"spr":"362","mega":1,"megaDe":"glalie"},{"id":"salamence_mega","nome":"Mega Salamence","t1":"dragon","t2":"flying","atk":310,"def":251,"hp":216,"fl":64,"lf":1,"rap":[[69,0],[87,0],[20,0]],"car":[[86,0],[145,0],[63,0],[96,0],[32,0],[50,0],[201,0]],"fam":-1,"dex":373,"evos":[],"spr":"373","mega":1,"megaDe":"salamence"},{"id":"metagross_mega","nome":"Mega Metagross","t1":"steel","t2":"psychic","atk":300,"def":289,"hp":190,"fl":64,"lf":1,"rap":[[38,0],[331,0],[105,0],[256,0]],"car":[[221,0],[94,0],[77,0],[181,0]],"fam":-1,"dex":376,"evos":[],"spr":"376","mega":1,"megaDe":"metagross"},{"id":"latias_mega","nome":"Mega Latias","t1":"dragon","t2":"psychic","atk":289,"def":297,"hp":190,"fl":64,"lf":1,"rap":[[65,0],[331,0],[41,0]],"car":[[221,0],[201,0],[296,0],[12,0],[185,0]],"fam":-1,"dex":380,"evos":[],"spr":"380","mega":1,"megaDe":"latias"},{"id":"latios_mega","nome":"Mega Latios","t1":"dragon","t2":"psychic","atk":335,"def":241,"hp":190,"fl":64,"lf":1,"rap":[[65,0],[331,0]],"car":[[221,0],[66,0],[270,0],[12,0],[172,0]],"fam":-1,"dex":381,"evos":[],"spr":"381","mega":1,"megaDe":"latios"},{"id":"kyogre_primal","nome":"Primal Kyogre","t1":"water","t2":"none","atk":353,"def":268,"hp":218,"fl":64,"lf":1,"rap":[[314,0]],"car":[[145,0],[24,0],[296,0],[286,0],[16,0],[200,0]],"fam":-1,"dex":382,"evos":[],"spr":"382","mega":1,"megaDe":"kyogre"},{"id":"groudon_primal","nome":"Primal Groudon","t1":"ground","t2":"fire","atk":353,"def":268,"hp":218,"fl":64,"lf":1,"rap":[[190,0],[69,0]],"car":[[77,0],[86,0],[270,0],[88,0],[218,0]],"fam":-1,"dex":383,"evos":[],"spr":"383","mega":1,"megaDe":"groudon"},{"id":"rayquaza_mega","nome":"Mega Rayquaza","t1":"dragon","t2":"flying","atk":377,"def":210,"hp":227,"fl":64,"lf":1,"rap":[[6,0],[69,0]],"car":[[201,0],[3,0],[7,0],[143,0],[29,0]],"fam":-1,"dex":384,"evos":[],"spr":"384","mega":1,"megaDe":"rayquaza"},{"id":"lopunny_mega","nome":"Mega Lopunny","t1":"normal","t2":"fighting","atk":282,"def":214,"hp":163,"fl":64,"lf":1,"rap":[[213,0],[169,0],[62,0]],"car":[[88,0],[147,0],[98,0],[305,0],[254,0],[300,0]],"fam":-1,"dex":428,"evos":[],"spr":"428","mega":1,"megaDe":"lopunny"},{"id":"garchomp_mega","nome":"Mega Garchomp","t1":"dragon","t2":"ground","atk":339,"def":222,"hp":239,"fl":64,"lf":1,"rap":[[69,0],[190,0]],"car":[[201,0],[77,0],[86,0],[247,0],[29,0],[307,0],[78,0]],"fam":-1,"dex":445,"evos":[],"spr":"445","mega":1,"megaDe":"garchomp"},{"id":"lucario_mega","nome":"Mega Lucario","t1":"fighting","t2":"steel","atk":310,"def":175,"hp":172,"fl":64,"lf":1,"rap":[[46,0],[38,0],[99,0]],"car":[[94,0],[254,0],[44,0],[216,0],[12,0],[22,0],[300,0],[181,0]],"fam":-1,"dex":448,"evos":[],"spr":"448","mega":1,"megaDe":"lucario"},{"id":"abomasnow_mega","nome":"Mega Abomasnow","t1":"grass","t2":"ice","atk":240,"def":191,"hp":207,"fl":64,"lf":1,"rap":[[214,0],[231,0],[162,0]],"car":[[24,0],[80,0],[201,0],[320,0],[155,0]],"fam":-1,"dex":460,"evos":[],"spr":"460","mega":1,"megaDe":"abomasnow"},{"id":"gallade_mega","nome":"Mega Gallade","t1":"psychic","t2":"fighting","atk":326,"def":230,"hp":169,"fl":64,"lf":1,"rap":[[45,0],[169,0],[41,0],[224,0]],"car":[[44,0],[221,0],[163,0],[288,0]],"fam":-1,"dex":475,"evos":[],"spr":"475","mega":1,"megaDe":"gallade"},{"id":"audino_mega","nome":"Mega Audino","t1":"normal","t2":"fairy","atk":147,"def":239,"hp":230,"fl":64,"lf":1,"rap":[[213,0],[331,0]],"car":[[57,0],[55,0],[147,0],[25,0]],"fam":-1,"dex":531,"evos":[],"spr":"531","mega":1,"megaDe":"audino"},{"id":"chesnaught_mega","nome":"Mega Chesnaught","t1":"grass","t2":"fighting","atk":242,"def":282,"hp":204,"fl":64,"lf":1,"rap":[[169,0],[310,0],[267,0]],"car":[[118,0],[80,0],[285,0],[270,0],[300,0],[102,0]],"fam":-1,"dex":652,"evos":[],"spr":"652","mega":1,"megaDe":"chesnaught"},{"id":"delphox_mega","nome":"Mega Delphox","t1":"fire","t2":"psychic","atk":331,"def":235,"hp":181,"fl":64,"lf":1,"rap":[[250,0],[89,0],[331,0]],"car":[[221,0],[90,0],[92,0],[86,0],[192,0],[225,0],[21,0]],"fam":-1,"dex":655,"evos":[],"spr":"655","mega":1,"megaDe":"delphox"},{"id":"greninja_mega","nome":"Mega Greninja","t1":"water","t2":"dark","atk":299,"def":180,"hp":176,"fl":64,"lf":1,"rap":[[84,0],[33,0],[318,0]],"car":[[195,0],[3,0],[286,0],[145,0],[144,0]],"fam":-1,"dex":658,"evos":[],"spr":"658","mega":1,"megaDe":"greninja"},{"id":"malamar_mega","nome":"Mega Malamar","t1":"dark","t2":"psychic","atk":208,"def":222,"hp":200,"fl":64,"lf":1,"rap":[[205,0],[224,0],[227,0]],"car":[[220,0],[100,0],[285,0],[147,0]],"fam":-1,"dex":687,"evos":[],"spr":"687","mega":1,"megaDe":"malamar"},{"id":"diancie_mega","nome":"Mega Diancie","t1":"rock","t2":"fairy","atk":342,"def":235,"hp":137,"fl":64,"lf":1,"rap":[[289,0],[239,0]],"car":[[237,0],[186,0],[215,0]],"fam":-1,"dex":719,"evos":[],"spr":"719","mega":1,"megaDe":"diancie"},{"id":"falinks_mega","nome":"Mega Falinks","t1":"fighting","t2":"none","atk":267,"def":229,"hp":163,"fl":64,"lf":1,"rap":[[238,0],[46,0]],"car":[[285,0],[30,0],[176,0]],"fam":-1,"dex":870,"evos":[],"spr":"870","mega":1,"megaDe":"falinks"}];
+MEGAS.forEach(m=>P.push(m));
+const MEGAS_DE={}; MEGAS.forEach(m=>{(MEGAS_DE[m.megaDe]=MEGAS_DE[m.megaDe]||[]).push(m)});
+const ehMega = p => !!(p && p.mega);
+const semMega = l => l.filter(p=>!p.mega);
+
 const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
 P.forEach(p=>{p.n=norm(p.nome);p.ni=norm(p.id)});
 const BYID = {}; P.forEach(p=>BYID[p.id]=p);
+const PVP = P.filter(p=>!p.mega);
+
+// Golpes exclusivos de Mega, direto do game master: só a forma mega tem acesso,
+// e no jogo eles vêm trancados até você subir o nível daquela mega.
+const MEGA_MV = [{"mega":"raichu_mega_x","id":"MEGA_MOVE_RAICHU_MEGA_X","tipo":"electric","pw":65,"en_":35,"pvePw":170,"pveMs":3500,"pveEn":-100},{"mega":"raichu_mega_y","id":"MEGA_MOVE_RAICHU_MEGA_Y","tipo":"electric","pw":70,"en_":45,"pvePw":160,"pveMs":3500,"pveEn":-100},{"mega":"victreebel_mega","id":"MEGA_MOVE_VICTREEBEL_MEGA","tipo":"poison","pw":20,"en_":40,"pvePw":160,"pveMs":3000,"pveEn":-100},{"mega":"starmie_mega","id":"MEGA_MOVE_STARMIE_MEGA","tipo":"water","pw":55,"en_":40,"pvePw":180,"pveMs":3000,"pveEn":-100},{"mega":"dragonite_mega","id":"MEGA_MOVE_DRAGONITE_MEGA","tipo":"dragon","pw":80,"en_":50,"pvePw":185,"pveMs":4000,"pveEn":-100},{"mega":"mewtwo_mega_x","id":"MEGA_MOVE_MEWTWO_MEGA_X","tipo":"fighting","pw":130,"en_":80,"pvePw":130,"pveMs":2500,"pveEn":-100},{"mega":"mewtwo_mega_y","id":"MEGA_MOVE_MEWTWO_MEGA_Y","tipo":"psychic","pw":130,"en_":80,"pvePw":140,"pveMs":2500,"pveEn":-100},{"mega":"skarmory_mega","id":"MEGA_MOVE_SKARMORY_MEGA","tipo":"flying","pw":60,"en_":35,"pvePw":170,"pveMs":2500,"pveEn":-100},{"mega":"chesnaught_mega","id":"MEGA_MOVE_CHESNAUGHT_MEGA","tipo":"grass","pw":60,"en_":40,"pvePw":150,"pveMs":2000,"pveEn":-100},{"mega":"delphox_mega","id":"MEGA_MOVE_DELPHOX_MEGA","tipo":"fire","pw":50,"en_":40,"pvePw":140,"pveMs":2000,"pveEn":-100},{"mega":"greninja_mega","id":"MEGA_MOVE_GRENINJA_MEGA","tipo":"water","pw":55,"en_":35,"pvePw":130,"pveMs":1500,"pveEn":-100},{"mega":"malamar_mega","id":"MEGA_MOVE_MALAMAR_MEGA","tipo":"psychic","pw":60,"en_":45,"pvePw":170,"pveMs":3000,"pveEn":-100},{"mega":"falinks_mega","id":"MEGA_MOVE_FALINKS_MEGA","tipo":"fighting","pw":40,"en_":35,"pvePw":150,"pveMs":1500,"pveEn":-100}];
+MEGA_MV.forEach(m=>{
+  const p=BYID[m.mega]; if(!p) return;
+  const i=MV.length;
+  MV.push({id:m.id, en:'Mega Move', tipo:m.tipo, pw:m.pw, en_:m.en_, eg:0, tn:1,
+    pvePw:m.pvePw, pveMs:m.pveMs, pveEn:m.pveEn, buff:0, rapido:false,
+    pt:'Golpe Mega', nome:'Golpe Mega', sub:'exclusivo da mega', exMega:1});
+  p.car.push([i,0]); p.temMegaMv=1;
+});
 
 const temSombroso = p => !!(p.fl & 16);
 
@@ -601,7 +628,7 @@ const CORTIPO={normal:'#A0A08C',fighting:'#D3453E',flying:'#8FA8E8',poison:'#A85
   dragon:'#6A45E0',dark:'#6A5750',fairy:'#EE86AC'};
 const TIPOCLARO=new Set(['electric','ice','ground','normal','bug','steel','grass','fairy','flying','rock']);
 function spriteUrl(p){ const b=p&&p.spr&&SPR[p.spr]; return b?('url(data:image/png;base64,'+b+')'):'none' }
-function elSprite(p,cls){ const d=el('div','sprite'+(cls?' '+cls:''));
+function elSprite(p,cls){ const d=el('div','sprite'+(cls?' '+cls:'')+(p&&p.mega?' mg':''));
   d.style.backgroundImage=spriteUrl(p); return d }
 function chipTipo(t){ const c=CORTIPO[t]||'#8895A6';
   return '<span class="chip-tipo'+(TIPOCLARO.has(t)?' claro':'')+'" style="--c:'+c+'">'+(TIPO[t]||t)+'</span>' }
@@ -691,88 +718,71 @@ function resistePve(p,sombra,iv,nivel){
   return d*h;
 }
 
-let RANK_GERAL=null;
-function rankingGeral(){
-  if(RANK_GERAL) return RANK_GERAL;
+// Nos rankings de reide os Megas entram ou não conforme S.rMega. O jogador
+// só pode ter um Mega ativo por vez, então às vezes ele quer ver o ranking
+// "sem megas" para saber onde os Pokémon da caixa dele realmente ficam.
+const RK_GERAL={}, RK_CONTRA={}, RK_TIPO={};
+function montaRank(cm, fn){
   const out=[];
   P.forEach(p=>{
+    if(p.mega && !cm) return;
     [false,true].forEach(sombra=>{
       if(sombra && !temSombroso(p)) return;
-      const m=melhorCombo(p,sombra,null,null,15,NIVEL_REF);
+      const m=fn(p,sombra);
       if(!m) return;
       out.push({p, sombra, dps:m.dps, f:m.f, c:m.c});
     });
   });
   out.sort((a,b)=>b.dps-a.dps);
   out.forEach((x,i)=>x.pos=i+1);
-  return RANK_GERAL=out;
+  return out;
+}
+function rankingGeral(cm){
+  const k=cm?1:0;
+  return RK_GERAL[k] || (RK_GERAL[k]=montaRank(cm,
+    (p,sombra)=>melhorCombo(p,sombra,null,null,15,NIVEL_REF)));
 }
 // Ranking CONTRA um tipo: quem mais machuca um chefe daquele tipo, usando
 // qualquer golpe. É o que importa na hora de montar time para a reide.
-let RANK_CONTRA={};
-function rankingContra(T){
-  if(RANK_CONTRA[T]) return RANK_CONTRA[T];
-  const out=[];
-  P.forEach(p=>{
-    [false,true].forEach(sombra=>{
-      if(sombra && !temSombroso(p)) return;
-      const m=melhorCombo(p,sombra,[T],null,15,NIVEL_REF);
-      if(!m) return;
-      out.push({p, sombra, dps:m.dps, f:m.f, c:m.c});
-    });
-  });
-  out.sort((a,b)=>b.dps-a.dps);
-  out.forEach((x,i)=>x.pos=i+1);
-  return RANK_CONTRA[T]=out;
+function rankingContra(T,cm){
+  const k=T+'|'+(cm?1:0);
+  return RK_CONTRA[k] || (RK_CONTRA[k]=montaRank(cm,
+    (p,sombra)=>melhorCombo(p,sombra,[T],null,15,NIVEL_REF)));
 }
-function posicaoContra(p,sombra,T){
-  const lista=rankingContra(T);
+function rankingTipo(T,cm){
+  const k=T+'|'+(cm?1:0);
+  return RK_TIPO[k] || (RK_TIPO[k]=montaRank(cm,
+    (p,sombra)=>melhorCombo(p,sombra,null,T,15,NIVEL_REF)));
+}
+// um Mega só tem posição no ranking que inclui megas
+const comMega = (p,cm) => !!cm || !!(p && p.mega);
+function achaNoRank(lista,p,sombra){
   const i=lista.findIndex(x=>x.p.id===p.id && !!x.sombra===!!sombra);
   if(i<0) return null;
+  const topo=lista[0]?lista[0].dps:1;
   return {pos:i+1, total:lista.length, dps:lista[i].dps,
-          forca:lista[i].dps/(lista[0]?lista[0].dps:1),
-          f:lista[i].f, c:lista[i].c};
+          forca:lista[i].dps/topo, f:lista[i].f, c:lista[i].c};
 }
-function melhoresContra(p,sombra,quantos){
+function posicaoContra(p,sombra,T,cm){
+  return achaNoRank(rankingContra(T, comMega(p,cm)), p, sombra);
+}
+function melhoresContra(p,sombra,quantos,cm){
   const out=[];
   DB.types.forEach(T=>{
-    const r=posicaoContra(p,sombra,T);
+    const r=posicaoContra(p,sombra,T,cm);
     if(r) out.push({tipo:T, ...r});
   });
   out.sort((a,b)=>a.pos-b.pos);
   return quantos?out.slice(0,quantos):out;
 }
-
-let RANK_TIPO={};
-function rankingTipo(T){
-  if(RANK_TIPO[T]) return RANK_TIPO[T];
-  const out=[];
-  P.forEach(p=>{
-    [false,true].forEach(sombra=>{
-      if(sombra && !temSombroso(p)) return;
-      const m=melhorCombo(p,sombra,null,T,15,NIVEL_REF);
-      if(!m) return;
-      out.push({p, sombra, dps:m.dps, f:m.f, c:m.c, res:resistePve(p,sombra,null,NIVEL_REF)});
-    });
-  });
-  out.sort((a,b)=>b.dps-a.dps);
-  out.forEach((x,i)=>x.pos=i+1);
-  return RANK_TIPO[T]=out;
-}
-function posicaoNoTipo(p,sombra,T){
-  const lista=rankingTipo(T);
-  const i=lista.findIndex(x=>x.p.id===p.id && !!x.sombra===!!sombra);
-  if(i<0) return null;
-  const topo=lista[0]?lista[0].dps:1;
-  return {pos:i+1, total:lista.length, dps:lista[i].dps,
-          forca:lista[i].dps/topo,   // o quanto ele chega perto do melhor do tipo
-          f:lista[i].f, c:lista[i].c};
+function posicaoNoTipo(p,sombra,T,cm){
+  return achaNoRank(rankingTipo(T, comMega(p,cm)), p, sombra);
 }
 // os tipos em que este Pokémon rende melhor, pela posição relativa
-function melhoresTipos(p,sombra,quantos){
+function melhoresTipos(p,sombra,quantos,cm){
   const out=[];
   DB.types.forEach(T=>{
-    const r=posicaoNoTipo(p,sombra,T);
+    const r=posicaoNoTipo(p,sombra,T,cm);
     if(r) out.push({tipo:T, ...r, rel:r.pos/r.total});
   });
   // o que importa é o quanto ele chega perto do melhor daquele tipo,
@@ -780,6 +790,15 @@ function melhoresTipos(p,sombra,quantos){
   out.sort((a,b)=>b.forca-a.forca);
   return out.slice(0,quantos||3);
 }
+// quantos megas estão na frente dele num ranking que inclui megas
+function megasAcima(p,sombra,T,modo){
+  const lista = modo==='ataca' ? rankingTipo(T,true) : rankingContra(T,true);
+  const i=lista.findIndex(x=>x.p.id===p.id && !!x.sombra===!!sombra);
+  if(i<0) return null;
+  let n=0; for(let k=0;k<i;k++) if(lista[k].p.mega) n++;
+  return {megas:n, pos:i+1, total:lista.length};
+}
+
 // Perfeição de reide.
 // O DPS puro só depende do ataque, mas o que a comunidade usa para comparar
 // atacantes é DPS^3 x TDO (dano total até desmaiar). Como TDO = DPS x PS x Def
@@ -801,7 +820,8 @@ function perfeicaoDPS(p,ivA){ return (p.atk+ivA)/(p.atk+15); }
 function cartaoReide(){
   const p=S.p, sombra=S.sombra;
   const contra = S.rCardModo!=='ataca';
-  const tops = contra ? melhoresContra(p,sombra,3) : melhoresTipos(p,sombra,3);
+  const cm = S.rMega;
+  const tops = contra ? melhoresContra(p,sombra,3,cm) : melhoresTipos(p,sombra,3,cm);
   if(!tops.length) return null;
   const perf=perfeicaoReide(p,S.iv);
   const perfD=perfeicaoDPS(p,S.iv[0]);
@@ -830,6 +850,17 @@ function cartaoReide(){
   });
   c.appendChild(segs);
 
+  if(!p.mega){
+    const mg=el('div','segs');
+    mg.style.cssText='margin:0 15px 4px';
+    [[true,'Ranking com Megas'],[false,'Só sem Megas']].forEach(([v,rot])=>{
+      const d=el('div', S.rMega===v?'on':'', rot);
+      d.onclick=()=>{ S.rMega=v; render(); };
+      mg.appendChild(d);
+    });
+    c.appendChild(mg);
+  }
+
   const lista=el('div','reidetipos');
   tops.forEach((t,i)=>{
     const d=el('div','rtipo');
@@ -854,7 +885,7 @@ function cartaoReide(){
   c.appendChild(bt);
 
   if(S.rCardTudo){
-    const todos = contra ? melhoresContra(p,sombra) : melhoresTipos(p,sombra,18);
+    const todos = contra ? melhoresContra(p,sombra,0,cm) : melhoresTipos(p,sombra,18,cm);
     const tb=el('div','reidetipos');
     tb.style.paddingTop='0';
     todos.forEach((t,i)=>{
@@ -872,7 +903,7 @@ function cartaoReide(){
 
   const nt=el('div','custo');
   nt.style.setProperty('--c','#E8763A');
-  nt.innerHTML='<div class="cn">'+
+  let txt =
     (contra
       ? '<b>Contra qual tipo</b>: em que chefes ele serve de counter, com o dano já '+
         'multiplicado pela fraqueza do alvo. É por aqui que se escolhe quem levar.'
@@ -881,9 +912,101 @@ function cartaoReide(){
     'compara atacantes: ataque conta quatro vezes mais, defesa e PS entram porque sobreviver '+
     'rende mais dano no total. Só de dano por segundo ele faz <b>'+
     (perfD*100).toFixed(1).replace('.',',')+'%</b>.'+
-    '<br>Comparação no <b>nível 40 com IV 15</b>, contra chefe de defesa 200.</div>';
+    '<br>Comparação no <b>nível 40 com IV 15</b>, contra chefe de defesa 200.';
+  if(p.mega){
+    txt += '<br><b>Mega:</b> este ranking sempre inclui os outros megas — é entre eles que '+
+      'você escolhe qual mega evoluir. Megas não entram em PvP.';
+  } else {
+    const ma = megasAcima(p, sombra, tops[0].tipo, contra?'contra':'ataca');
+    if(ma && ma.megas) txt += '<br><b>Megas:</b> em '+(TIPO[tops[0].tipo]||tops[0].tipo)+
+      ' há <b>'+ma.megas+'</b> mega'+(ma.megas>1?'s':'')+' na frente dele'+
+      (S.rMega ? '. Toque em "Só sem Megas" para ver onde ele fica entre os Pokémon normais.'
+               : ' — contando os megas ele seria #'+fmt(ma.pos)+'.');
+    else if(ma) txt += '<br><b>Megas:</b> nenhum mega na frente dele em '+
+      (TIPO[tops[0].tipo]||tops[0].tipo)+' — ele é escolha de reide de verdade.';
+  }
+  nt.innerHTML='<div class="cn">'+txt+'</div>';
   c.appendChild(nt);
   return c;
+}
+
+// ---- megas: cartão de aviso e seção da família ---------------------------
+function cartaoMegaPvP(){
+  const p=S.p, base=BYID[p.megaDe];
+  const c=el('div','carta');
+  c.appendChild(el('div','tit','Mega nas ligas'));
+  c.appendChild(el('div','note',
+    'Pelo game master as ligas estão com <b>mega evolução liberada</b>, então os números '+
+    'acima valem: PC, nível e % de IV são calculados com os atributos da mega.<br>'+
+    'O que falta é o <b>ranking do meta</b>: a base do PvPoke não ranqueia megas, por isso '+
+    'aparece "fora do ranking" e não há confrontos nem notas aqui. Para ver o meta, abra a '+
+    'forma normal.<br>Lembre que a mega dura <b>8 horas</b> — passou disso, ele volta ao normal '+
+    'no meio da temporada de ligas.'));
+  if(base){
+    const b=el('button','act forte','Ver o meta do '+base.nome);
+    b.onclick=()=>abrirPokemon(base,{iv:S.iv.slice(), nivel:S.nivelAtual});
+    c.appendChild(b);
+  }
+  return c;
+}
+
+// linha compacta de um mega, com a melhor posição dele em reide
+function linhaMega(m, atual){
+  const d=el('div','mv evo'+(atual?' best':''));
+  d.style.setProperty('--tc','#8E44AD');
+  d.appendChild(elSprite(m));
+  const tops=melhoresContra(m,false,1,true);
+  const t=tops[0];
+  const col=el('div','col');
+  col.innerHTML='<div class="l1"><span class="nm">'+m.nome+'</span>'+
+    (atual?'<span class="badge rec">Nesta tela</span>':'')+
+    '<span class="sc">'+(t?t.dps.toFixed(1).replace('.',','):'—')+'</span></div>'+
+    '<div class="l2">'+chipTipo(m.t1)+(m.t2!=='none'?' '+chipTipo(m.t2):'')+
+      '  <span style="color:var(--fraco)">Atq '+m.atk+' · Def '+m.def+' · PS '+m.hp+'</span></div>'+
+    (t?'<div class="l2" style="color:var(--fraco)">melhor contra <b>'+(TIPO[t.tipo]||t.tipo)+
+        '</b>: #'+fmt(t.pos)+' de '+fmt(t.total)+' · '+t.f.nome+' + '+t.c.nome+'</div>':'');
+  d.appendChild(col);
+  if(!atual) d.onclick=()=>abrirPokemon(m,{iv:S.iv.slice(), nivel:S.nivelAtual});
+  return d;
+}
+
+function secaoMega(){
+  const p=S.p;
+  const base = p.mega ? BYID[p.megaDe] : p;
+  if(!base) return null;
+  const irmaos = MEGAS_DE[base.id]||[];
+  if(!irmaos.length) return null;
+  const box=el('div','sec');
+  box.appendChild(el('h2',null, irmaos.length>1?'Mega evoluções':'Mega evolução'));
+  box.appendChild(el('div','eyebrow', p.mega
+    ? 'Mesmos IVs '+S.iv.join('/')+' — mega evoluir não mexe neles'
+    : 'O que este Pokémon vira ao mega evoluir, com os seus IVs '+S.iv.join('/')));
+  if(p.mega){
+    const d=el('div','mv evo');
+    d.style.setProperty('--tc', CORTIPO[base.t1]||'#666');
+    d.appendChild(elSprite(base));
+    const col=el('div','col');
+    col.innerHTML='<div class="l1"><span class="nm">'+base.nome+'</span>'+
+      '<span class="badge legado">Forma normal</span></div>'+
+      '<div class="l2"><span style="color:var(--fraco)">Atq '+base.atk+' · Def '+base.def+
+      ' · PS '+base.hp+'</span></div>';
+    d.appendChild(col);
+    d.onclick=()=>abrirPokemon(base,{iv:S.iv.slice(), nivel:S.nivelAtual});
+    box.appendChild(d);
+  }
+  irmaos.forEach(m=>box.appendChild(linhaMega(m, m.id===p.id)));
+  if(irmaos.some(m=>m.temMegaMv))
+    box.appendChild(el('div','note','<b>Golpe Mega:</b> '+
+      irmaos.filter(m=>m.temMegaMv).map(m=>m.nome).join(' e ')+
+      ' tem um golpe carregado exclusivo da forma mega, bem mais forte que os normais. '+
+      'No jogo ele vem trancado até você subir o nível daquela mega — eu já conto ele nos '+
+      'rankings, então o DPS que mostro é o da mega com o golpe liberado.'));
+  box.appendChild(el('div','note','Mega evolução dura <b>8 horas</b> e depois entra em espera; '+
+    'a cada mega que você faz do mesmo Pokémon o custo de energia cai, até ficar de graça. '+
+    'Enquanto um mega está ativo ele dá <b>bônus de dano</b> para todo mundo do time na reide: '+
+    '<b>+30%</b> para quem ataca com o mesmo tipo do mega e <b>+10%</b> para os outros tipos. '+
+    'Por isso vale mega evoluir mesmo quando ele não é o melhor counter.'));
+  return box;
 }
 
 // ---- aba de reide --------------------------------------------------------
@@ -916,6 +1039,18 @@ function pintarReide(){
     segs.appendChild(d);
   });
   box.appendChild(segs);
+
+  const mg=el('div','segs');
+  mg.style.marginTop='8px';
+  [[true,'Com Megas'],[false,'Sem Megas']].forEach(([v,rot])=>{
+    const d=el('div', S.rMega===v?'on':'', rot);
+    d.onclick=()=>{ S.rMega=v; S.rVer=15; pintarReide(); };
+    mg.appendChild(d);
+  });
+  box.appendChild(mg);
+  box.appendChild(el('div','eyebrow', S.rMega
+    ? 'Megas incluídos — são os atacantes mais fortes do jogo, mas só um por vez'
+    : 'Megas fora da conta — ranking dos Pokémon que você leva sem gastar energia mega'));
 
   if(S.rModo==='tipo') reidePorTipo(box);
   else if(S.rModo==='chefe') reideContraChefe(box);
@@ -958,7 +1093,7 @@ function reidePorTipo(box){
   let T=S.rTipo;
   if(contra && !T){ T='normal'; S.rTipo=T; }
 
-  const lista = contra ? rankingContra(T) : (T?rankingTipo(T):rankingGeral());
+  const lista = contra ? rankingContra(T,S.rMega) : (T?rankingTipo(T,S.rMega):rankingGeral(S.rMega));
   const sec=el('div','sec');
   sec.appendChild(el('h2',null, contra
     ? 'Melhores contra chefe de '+(TIPO[T]||T)
@@ -1035,7 +1170,7 @@ function reideContraChefe(box){
     const lend = p => (p.fl & 43) !== 0;
     const segs=el('div','segs');
     segs.style.marginTop='10px';
-    [['lend','Lendários'],['fortes','Mais fortes'],['todos','Todos']].forEach(([k,rot])=>{
+    [['lend','Lendários'],['mega','Megas'],['fortes','Mais fortes'],['todos','Todos']].forEach(([k,rot])=>{
       const d=el('div', S.rLista===k?'on':'', rot);
       d.onclick=()=>{ S.rLista=k; S.rVerC=24; pintarReide(); };
       segs.appendChild(d);
@@ -1045,16 +1180,20 @@ function reideContraChefe(box){
     const q=norm(S.rChefeTxt||'');
     let lista=P.filter(p=>{
       if(q && !p.n.includes(q)) return false;
-      if(S.rLista==='lend') return lend(p);
+      if(S.rLista==='mega') return !!p.mega;
+      if(S.rLista==='lend') return lend(p) && !p.mega;
+      if(S.rLista==='fortes') return !p.mega;
       return true;
     });
     // dificuldade: o que ele tem de ataque, defesa e PS juntos
     lista.forEach(p=>p._dif=Math.pow(p.atk*p.def*p.hp,1/3));
     if(S.rLista==='todos' && !q) lista.sort((a,b)=>a.dex-b.dex);
+    else if(S.rLista==='mega') lista.sort((a,b)=>a.dex-b.dex||a.id.localeCompare(b.id));
     else lista.sort((a,b)=>b._dif-a._dif);
 
     box.appendChild(el('div','eyebrow', lista.length+(q?' encontrados':
       S.rLista==='lend'?' lendários, míticos e ultra bestas — os chefes mais comuns':
+      S.rLista==='mega'?' mega evoluções — reide de mega dá energia mega e o doce da família':
       S.rLista==='fortes'?' Pokémon, do mais duro para o mais fácil':' Pokémon, por número da Pokédex')));
 
     const lim=S.rVerC||24;
@@ -1128,6 +1267,7 @@ function reideContraChefe(box){
   // melhores counters, já com a tipagem do chefe aplicada
   const todos=[];
   P.forEach(p=>{
+    if(p.mega && !S.rMega) return;
     [false,true].forEach(sombra=>{
       if(sombra && !temSombroso(p)) return;
       const m=melhorCombo(p,sombra,tipos,null,15,NIVEL_REF);
@@ -1136,6 +1276,37 @@ function reideContraChefe(box){
   });
   todos.sort((a,b)=>b.dps-a.dps);
   todos.forEach((x,i)=>{x.pos=i+1; x.total=todos.length;});
+
+  // qual mega evoluir para esta reide: só um fica ativo, então vale uma lista própria
+  const megas = MEGAS.map(m=>{
+    const mm=melhorCombo(m,false,tipos,null,15,NIVEL_REF);
+    return mm?{p:m,sombra:false,dps:mm.dps,f:mm.f,c:mm.c,alvo:tipos}:null;
+  }).filter(Boolean).sort((a,b)=>b.dps-a.dps);
+  if(megas.length){
+    const ms=el('div','sec');
+    ms.appendChild(el('h2',null,'Qual Mega evoluir'));
+    ms.appendChild(el('div','eyebrow','Só um mega fica ativo por vez — este é o melhor para '+
+      chefe.nome));
+    megas.slice(0, S.rVerM||4).forEach((x,i)=>{
+      x.pos=i+1; x.total=megas.length;
+      ms.appendChild(linhaAtacante(x,i));
+    });
+    if(megas.length>(S.rVerM||4)){
+      const b=el('button','act ghost','Ver mais megas');
+      b.onclick=()=>{ S.rVerM=(S.rVerM||4)+8; pintarReide(); };
+      ms.appendChild(b);
+    }
+    const mt=el('div','note');
+    const tipoMega=megas[0].c.tipo;
+    mt.innerHTML='Mega evoluir dá <b>bônus de dano para o time todo</b> na reide: '+
+      '<b>+30%</b> para quem ataca com o mesmo tipo do golpe do mega e <b>+10%</b> para os '+
+      'outros tipos. Com o '+megas[0].p.nome+' ativo, todo mundo que levar '+
+      (TIPO[tipoMega]||tipoMega)+' bate 30% mais forte.'+
+      (chefe.mega?'<br>Reide de mega <b>não dá</b> o Pokémon mega: você leva a forma normal '+
+        'e ganha energia mega da família.':'');
+    ms.appendChild(mt);
+    box.appendChild(ms);
+  }
 
   const sec=el('div','sec');
   sec.appendChild(el('h2',null,'Melhores contra '+chefe.nome));
@@ -1224,7 +1395,7 @@ function reideMinhaCaixa(box){
   salvos.forEach(s=>{
     const p=BYID[s.id]; if(!p) return;
     const nivel=s.nivel!=null?s.nivel:NIVEL_REF;
-    const tops=melhoresTipos(p,s.sombra,1);
+    const tops=melhoresTipos(p,s.sombra,1,false);
     if(!tops.length) return;
     const m=melhorCombo(p,s.sombra,null,tops[0].tipo,s.iv[0],nivel);
     if(!m) return;
@@ -1254,7 +1425,7 @@ function reideMinhaCaixa(box){
   salvos.forEach(s=>{
     const p=BYID[s.id]; if(!p) return;
     DB.types.forEach(T=>{
-      const r=posicaoNoTipo(p,s.sombra,T);
+      const r=posicaoNoTipo(p,s.sombra,T,false);
       if(r && (!porTipo[T] || r.pos<porTipo[T].pos)) porTipo[T]={pos:r.pos, nome:p.nome};
     });
   });
@@ -1923,9 +2094,9 @@ function idxCPM(v){
 
 function identifica(cpLido,ps,iv,nome){
   const comNome = !!nome;
-  let base=P;
+  let base=PVP;
   if(comNome){
-    const f=P.filter(p=>p.nome.split(' (')[0]===nome);
+    const f=PVP.filter(p=>p.nome.split(' (')[0]===nome);
     if(f.length) base=f;
   }
   const out=[];
@@ -1992,7 +2163,7 @@ function manual(txt,ok){
 }
 
 // ---- estado -------------------------------------------------------------
-const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, rCardModo:'contra', rCardTudo:false, rListaModo:'contra', rLista:'lend', rVerC:24, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
+const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, rCardModo:'contra', rCardTudo:false, rListaModo:'contra', rLista:'lend', rVerC:24, rMega:true, rVerM:4, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
 const $ = s => document.querySelector(s);
 const el = (t,c,html,txt)=>{const e=document.createElement(t); if(c)e.className=c;
   if(html!=null)e.innerHTML=html; if(txt!=null)e.textContent=txt; return e};
@@ -2007,7 +2178,9 @@ $('#q').addEventListener('input', e=>{
   if(q.length<2){box.className='';box.innerHTML='';return}
   const hits = P.filter(p=>p.n.includes(q)||p.ni.includes(q))
     .sort((x,y)=>{
-      const rx=(DB.ranks.gl.map[x.id]||[9999])[0], ry=(DB.ranks.gl.map[y.id]||[9999])[0];
+      const pos=z=>{ const b=z.mega?z.megaDe:z.id;
+        return ((DB.ranks.gl.map[b]||[9999])[0]) + (z.mega?0.5:0); };
+      const rx=pos(x), ry=pos(y);
       const sx=x.n.startsWith(q)?0:1, sy=y.n.startsWith(q)?0:1;
       return sx-sy || rx-ry;
     }).slice(0,25);
@@ -2111,9 +2284,10 @@ function render(){
     '<div class="corpo">'+
       '<div class="pc">'+(cpLido?'<span>PC</span> '+cpLido:'&nbsp;')+'</div>'+
       arco+
-      '<div class="bicho sprite g" style="background-image:'+spriteUrl(p)+'"></div>'+
+      '<div class="bicho sprite g'+(p.mega?' mg':'')+'" style="background-image:'+spriteUrl(p)+'"></div>'+
       '<div class="rodape"><div class="txt"><div class="nome">'+p.nome+'</div>'+
         '<div class="tipos">'+chipTipo(p.t1)+(p.t2!=='none'?chipTipo(p.t2):'')+
+        (p.mega?'<span class="selo" style="background:rgba(142,68,173,.85)">Mega</span>':'')+
         (S.sombra?'<span class="selo">Sombroso</span>':'')+
         (nivelConhecido?'<span class="selo">Nível '+String(nivelConhecido).replace('.',',')+'</span>':'')+
         (S.purif?'<span class="selo" style="background:rgba(18,153,107,.85)">Purificado</span>':'')+
@@ -2202,14 +2376,21 @@ function render(){
   const apeBox=el('div'); apeBox.id='apebox'; box.appendChild(apeBox);
   const evos=el('div'); evos.id='evos'; box.appendChild(evos);
 
+  const sm=secaoMega(); if(sm) box.appendChild(sm);
   const pur=secaoPurificar(); if(pur) box.appendChild(pur);
   const pap=secaoPapeis(); if(pap) box.appendChild(pap);
   box.appendChild(secaoTipos());
   const conf=secaoConfrontos(); if(conf) box.appendChild(conf);
   box.appendChild(secaoAtaques());
 
-  const salvar=el('button','act ghost','★ Salvar este Pokémon');
+  const salvar=el('button','act ghost', p.mega?'★ Salvar o '+(BYID[p.megaDe]?BYID[p.megaDe].nome:'base'):'★ Salvar este Pokémon');
   salvar.onclick=()=>{
+    if(p.mega){ const b=BYID[p.megaDe];
+      if(b){ Salvos.add({id:b.id, sombra:false, iv:S.iv.slice(),
+        nivel:(S.nivelAtual!=null?S.nivelAtual:null)});
+        salvar.textContent='★ Salvo como '+b.nome;
+        setTimeout(()=>salvar.textContent='★ Salvar o '+b.nome,1600); }
+      return; }
     Salvos.add({id:p.id, sombra:S.sombra, iv:S.iv.slice(),
       nivel: (S.nivelAtual!=null ? S.nivelAtual
               : (S.nivelLido && S.idLido===p.id ? S.nivelLido : null))});
@@ -2236,6 +2417,7 @@ function pintarCards(){
   const cards=$('#cards'); if(!cards)return;
   cards.innerHTML='';
   ['gl','ul','ml'].forEach(lg=>cards.appendChild(cartao(lg)));
+  if(S.p && S.p.mega) cards.appendChild(cartaoMegaPvP());
   const ev=$('#evos');
   if(ev){ ev.innerHTML=''; const s2=secaoEvolucoes(); if(s2) ev.appendChild(s2); }
   const cr=cartaoReide(); if(cr) cards.appendChild(cr);
@@ -2585,10 +2767,10 @@ function acharPokemon(txt){
     ['hisuian','_hisuian'],['hisui','_hisuian'],['paldean','_paldean'],['paldea','_paldean']];
   let sufixo='';
   formas.forEach(([k,v])=>{ if(n.includes(k)){n=n.replace(k,''); sufixo=v} });
-  let hit = P.find(p=>p.ni===n+sufixo) || P.find(p=>p.n===n+norm(sufixo));
-  if(!hit && sufixo) hit = P.find(p=>p.ni.startsWith(n)&&p.ni.endsWith(sufixo));
-  if(!hit) hit = P.find(p=>p.n===n) || P.find(p=>p.ni===n);
-  if(!hit) hit = P.find(p=>p.n.startsWith(n)&&n.length>=4);
+  let hit = PVP.find(p=>p.ni===n+sufixo) || PVP.find(p=>p.n===n+norm(sufixo));
+  if(!hit && sufixo) hit = PVP.find(p=>p.ni.startsWith(n)&&p.ni.endsWith(sufixo));
+  if(!hit) hit = PVP.find(p=>p.n===n) || PVP.find(p=>p.ni===n);
+  if(!hit) hit = PVP.find(p=>p.n.startsWith(n)&&n.length>=4);
   return hit ? {p:hit,sombra} : null;
 }
 
@@ -2906,7 +3088,7 @@ function etiqSugerida(s){
       if(r && !r.inelegivel) out.push(lg);
     }
   });
-  const tops=melhoresTipos(p, s.sombra, 1);
+  const tops=melhoresTipos(p, s.sombra, 1, false);
   if(tops.length && (tops[0].forca>=0.70 || tops[0].pos<=50)) out.push('raide');
   return out;
 }
@@ -3164,7 +3346,7 @@ function pintarLeitura(){
   if(L.nome){
     const cab=el('div');
     cab.style.cssText='display:flex;align-items:center;gap:11px;margin-bottom:6px';
-    const alvo=P.find(x=>x.nome.split(' (')[0]===L.nome);
+    const alvo=PVP.find(x=>x.nome.split(' (')[0]===L.nome);
     if(alvo) cab.appendChild(elSprite(alvo));
     cab.appendChild(el('div',null,'<div class="eyebrow">Nome lido do print</div>'+
       '<div style="font:800 21px var(--disp);letter-spacing:-.025em">'+L.nome+'</div>'));
@@ -3346,7 +3528,7 @@ function pintarBuscaTime(){
   const q=norm(($('#qtime')||{}).value||'');
   if(q.length<2) return;
   cx.className='on'; cx.id='timehits';
-  const achados=P.filter(p=>p.n.includes(q))
+  const achados=PVP.filter(p=>p.n.includes(q))
     .sort((a,b)=>{
       const ra=(DB.ranks.gl.map[a.id]||[])[0]||9999, rb=(DB.ranks.gl.map[b.id]||[])[0]||9999;
       return ra-rb;
@@ -3449,7 +3631,7 @@ let COMBOS_CACHE=null;
 function combosDoJogo(){
   if(COMBOS_CACHE) return COMBOS_CACHE;
   const set={};
-  P.forEach(q=>{ if(q.t2 && q.t2!=='none') set[[q.t1,q.t2].sort().join('|')]=1; });
+  PVP.forEach(q=>{ if(q.t2 && q.t2!=='none') set[[q.t1,q.t2].sort().join('|')]=1; });
   return COMBOS_CACHE=Object.keys(set).map(k=>k.split('|'));
 }
 function blocoTipos(p, sombra, lg, titulo){
