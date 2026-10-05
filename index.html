@@ -277,6 +277,27 @@ td.n{text-align:right;font-family:var(--num);font-variant-numeric:tabular-nums}
 .rt-mv{font-size:11px;color:var(--fraco);margin-top:2px;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 #chefehits{position:relative}
+
+.etiqs{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.etiq{font:800 9px var(--disp);letter-spacing:.06em;text-transform:uppercase;color:#fff;
+  background:var(--c);padding:3px 7px;border-radius:99px}
+.etiqlinha{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.etiqbt{flex:1;min-width:66px;text-align:center;padding:9px 6px;border-radius:11px;
+  border:1.5px solid var(--linha);font:800 11.5px var(--disp);color:var(--c);background:var(--fundo)}
+.etiqbt.on{background:var(--c);color:#fff;border-color:var(--c)}
+.editor{border:2px solid var(--gl)}
+.ivedit{display:flex;gap:8px;margin-top:8px}
+.ivcol{flex:1;text-align:center;background:var(--fundo);border-radius:12px;padding:8px 4px}
+.ivcol .l{font:800 9px var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--fraco)}
+.ivcol .v{font:800 22px var(--num);margin:2px 0 6px}
+.ivbts{display:flex;gap:5px;justify-content:center}
+.ivbts button{width:34px;height:30px;border:0;border-radius:9px;background:var(--linha2);
+  font:700 17px/1 var(--disp);color:var(--tinta)}
+.nvedit{display:flex;align-items:center;gap:10px;margin-top:8px}
+.nvatual{flex:1;font-size:12.5px;color:var(--tinta2)}
+.nvedit input{width:96px;padding:8px;border-radius:10px;border:1.5px solid var(--linha);
+  font:700 13px var(--num);text-align:center;background:var(--fundo)}
+.saved .x{cursor:pointer}
 .chip-par{display:inline-flex;border-radius:99px;overflow:hidden;
   box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 2px 6px rgba(22,33,46,.2)}
 .chip-par i{font:800 10.5px var(--disp);letter-spacing:.06em;text-transform:uppercase;
@@ -364,7 +385,7 @@ footer b{color:var(--tinta2)}
   <div>
     <h1>Stat Product</h1>
     <div class="sub">IV, ligas e ataques · base PvPoke de <span id="gmdate"></span><br>
-      <span style="opacity:.75">versão <b id="verapp">04/10 21:03</b></span></div>
+      <span style="opacity:.75">versão <b id="verapp">04/10 21:42</b></span></div>
   </div>
 </header>
 
@@ -670,6 +691,22 @@ function resistePve(p,sombra,iv,nivel){
   return d*h;
 }
 
+let RANK_GERAL=null;
+function rankingGeral(){
+  if(RANK_GERAL) return RANK_GERAL;
+  const out=[];
+  P.forEach(p=>{
+    [false,true].forEach(sombra=>{
+      if(sombra && !temSombroso(p)) return;
+      const m=melhorCombo(p,sombra,null,null,15,NIVEL_REF);
+      if(!m) return;
+      out.push({p, sombra, dps:m.dps, f:m.f, c:m.c});
+    });
+  });
+  out.sort((a,b)=>b.dps-a.dps);
+  out.forEach((x,i)=>x.pos=i+1);
+  return RANK_GERAL=out;
+}
 let RANK_TIPO={};
 function rankingTipo(T){
   if(RANK_TIPO[T]) return RANK_TIPO[T];
@@ -800,6 +837,9 @@ function pintarReide(){
 
 function reidePorTipo(box){
   const sc=el('div','scroll');
+  const ger=el('div','chip'+(S.rTipo?'':' on'),'Geral');
+  ger.onclick=()=>{ S.rTipo=null; S.rVer=15; pintarReide(); };
+  sc.appendChild(ger);
   DB.types.forEach(t=>{
     const on=S.rTipo===t, cor=CORTIPO[t]||'#8895A6';
     const c=el('div','chip'+(on?' on':''), TIPO[t]||t);
@@ -812,10 +852,13 @@ function reidePorTipo(box){
   box.appendChild(sc);
 
   const T=S.rTipo;
-  const lista=rankingTipo(T);
+  const lista=T?rankingTipo(T):rankingGeral();
   const sec=el('div','sec');
-  sec.appendChild(el('h2',null,'Melhores atacantes de '+(TIPO[T]||T)));
-  sec.appendChild(el('div','eyebrow', lista.length+' Pokémon com golpe carregado de '+(TIPO[T]||T)));
+  sec.appendChild(el('h2',null, T?'Melhores atacantes de '+(TIPO[T]||T)
+                                :'Melhores atacantes no geral'));
+  sec.appendChild(el('div','eyebrow', T
+    ? lista.length+' Pokémon com golpe carregado de '+(TIPO[T]||T)
+    : lista.length+' Pokémon, cada um no melhor golpe que tem'));
   lista.slice(0, S.rVer||15).forEach((x,i)=>sec.appendChild(linhaAtacante(x,i)));
   if(lista.length>(S.rVer||15)){
     const b=el('button','act ghost','Mostrar mais 15');
@@ -825,6 +868,11 @@ function reidePorTipo(box){
   box.appendChild(sec);
 
   // o que esse tipo resolve
+  if(!T){
+    box.appendChild(el('div','note','Sem tipo escolhido eu mostro o melhor golpe de cada um, '+
+      'sem travar o elemento. Toque num tipo acima para ver quem levar contra ele.'));
+    return;
+  }
   const bons=DB.types.filter(alvo=>DB.eff[T][DB.types.indexOf(alvo)]>1);
   const ruins=DB.types.filter(alvo=>DB.eff[T][DB.types.indexOf(alvo)]<1);
   const c=el('div','carta');
@@ -886,9 +934,6 @@ function reideContraChefe(box){
       (chefe.t2!=='none'?' '+chipTipo(chefe.t2):'')+'</div>'));
   ficha.appendChild(cab);
 
-  const troca=el('button','act ghost','Trocar de chefe');
-  troca.onclick=()=>{ S.rChefe=null; pintarReide(); };
-  ficha.appendChild(troca);
 
   // fraquezas dele, que é o que decide o que levar
   const mult={};
@@ -906,7 +951,12 @@ function reideContraChefe(box){
     '<div class="tmult">1,6×</div></div><div class="tchips">'+fraco.map(t=>chipTipo(t)).join('')+'</div></div>';
   if(resiste.length) h+='<div class="tlinha"><div class="trot" style="color:#2E9E6B">Resiste'+
     '<div class="tmult">0,63×</div></div><div class="tchips">'+resiste.map(t=>chipTipo(t)).join('')+'</div></div>';
-  ficha.innerHTML+=h;
+  const fraquezas=el('div');
+  fraquezas.innerHTML=h;
+  ficha.appendChild(fraquezas);
+  const troca=el('button','act ghost','Trocar de chefe');
+  troca.onclick=()=>{ S.rChefe=null; S.rChefeTxt=''; S.rVer=15; pintarReide(); };
+  ficha.appendChild(troca);
   if(dupla.length)
     ficha.appendChild(el('div','note','<b>Leve '+dupla.map(t=>TIPO[t]).join(' ou ')+'.</b> '+
       'Fraqueza dupla é 2,56× de dano — vale mais que qualquer outra escolha aqui.'));
@@ -1779,7 +1829,7 @@ function manual(txt,ok){
 }
 
 // ---- estado -------------------------------------------------------------
-const S = {p:null, sombra:false, rModo:'tipo', rTipo:'fire', rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
+const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
 const $ = s => document.querySelector(s);
 const el = (t,c,html,txt)=>{const e=document.createElement(t); if(c)e.className=c;
   if(html!=null)e.innerHTML=html; if(txt!=null)e.textContent=txt; return e};
@@ -2669,6 +2719,140 @@ function secaoBackup(){
 }
 
 
+
+// ---- etiquetas e edição dos salvos --------------------------------------
+const ETIQ=[['gl','Grande','var(--gl)'],['ul','Ultra','var(--ul)'],
+            ['ml','Mestra','var(--ml)'],['raide','Reide','#E8763A']];
+function etiqDe(s){ return Array.isArray(s.tags)?s.tags:[]; }
+function corEtiq(k){ const e=ETIQ.find(x=>x[0]===k); return e?e[2]:'var(--fraco)'; }
+function nomeEtiq(k){ const e=ETIQ.find(x=>x[0]===k); return e?e[1]:k; }
+function chipEtiq(k){
+  return '<span class="etiq" style="--c:'+corEtiq(k)+'">'+nomeEtiq(k)+'</span>';
+}
+// sugere a etiqueta pelo que o próprio app já sabe do Pokémon
+function etiqSugerida(s){
+  const p=BYID[s.id]; if(!p) return [];
+  const out=[];
+  ['gl','ul','ml'].forEach(lg=>{
+    if(s.nivel!=null){
+      // com o nível conhecido, vale o PC real: quem passou do teto não entra
+      if(dadosLiga({id:s.id,sombra:s.sombra,iv:s.iv,nivel:s.nivel}, lg)) out.push(lg);
+    } else {
+      // sem nível, o critério é se ele caberia na liga em algum nível
+      const r=analise(p,s.sombra,s.iv[0],s.iv[1],s.iv[2],lg,S.teto);
+      if(r && !r.inelegivel) out.push(lg);
+    }
+  });
+  const tops=melhoresTipos(p, s.sombra, 1);
+  if(tops.length && (tops[0].forca>=0.70 || tops[0].pos<=50)) out.push('raide');
+  return out;
+}
+
+function editorSalvo(i, s, fechar){
+  const p=BYID[s.id];
+  const box=el('div','carta editor');
+  box.appendChild(el('div','tit','Editando '+p.nome+(s.sombra?' sombroso':'')));
+
+  // etiquetas
+  box.appendChild(el('div','eyebrow','Etiquetas'));
+  const linha=el('div','etiqlinha');
+  ETIQ.forEach(([k,rot,cor])=>{
+    const on=etiqDe(s).indexOf(k)>=0;
+    const d=el('div','etiqbt'+(on?' on':''), rot);
+    d.style.setProperty('--c',cor);
+    d.onclick=()=>{
+      const v=Salvos.ler();
+      const t=etiqDe(v[i]).slice();
+      const j=t.indexOf(k);
+      if(j>=0) t.splice(j,1); else t.push(k);
+      v[i].tags=t; Salvos.gravar(v); pintarSalvos();
+    };
+    linha.appendChild(d);
+  });
+  box.appendChild(linha);
+
+  const sug=etiqSugerida(s).filter(k=>etiqDe(s).indexOf(k)<0);
+  if(sug.length){
+    const b=el('button','act ghost','Aplicar sugestão: '+sug.map(nomeEtiq).join(', '));
+    b.onclick=()=>{
+      const v=Salvos.ler();
+      v[i].tags=etiqDe(v[i]).concat(sug);
+      Salvos.gravar(v); pintarSalvos();
+    };
+    box.appendChild(b);
+    box.appendChild(el('div','note','Sugeri pelo que já sei dele: em que ligas ele cabe'+
+      (s.nivel==null?' <span style="color:#C77B22">(sem o nível, considerei se caberia em algum nível)</span>':'')+
+      ' e se ele rende em reide — top 50 do tipo ou 70% do melhor.'));
+  }
+
+  // IVs
+  box.appendChild(el('div','eyebrow','Valores individuais'));
+  const ivs=el('div','ivedit');
+  ['Ataque','Defesa','PS'].forEach((rot,k)=>{
+    const c=el('div','ivcol');
+    c.innerHTML='<div class="l">'+rot+'</div><div class="v num">'+s.iv[k]+'</div>';
+    const bts=el('div','ivbts');
+    [['−',-1],['+',1]].forEach(([t,d])=>{
+      const b=el('button',null,t);
+      b.onclick=()=>{
+        const v=Salvos.ler();
+        v[i].iv[k]=Math.max(0,Math.min(15, v[i].iv[k]+d));
+        Salvos.gravar(v); pintarSalvos();
+      };
+      bts.appendChild(b);
+    });
+    c.appendChild(bts);
+    ivs.appendChild(c);
+  });
+  box.appendChild(ivs);
+
+  // nível, pelo PC
+  box.appendChild(el('div','eyebrow','Nível'));
+  const nv=el('div','nvedit');
+  const atual=el('div','nvatual', s.nivel!=null
+    ? 'nível '+String(s.nivel).replace('.',',')+' · PC '+fmt(pcNoNivel(p,s.iv,s.nivel))
+    : '<span style="color:#C77B22">não informado</span>');
+  nv.appendChild(atual);
+  const inp=el('input');
+  inp.type='number'; inp.inputMode='numeric'; inp.placeholder='PC do jogo';
+  inp.onclick=e=>e.stopPropagation();
+  inp.onchange=()=>{
+    const pc=parseInt(inp.value,10); if(!pc) return;
+    const n=nivelPorPC(p, s.iv, pc);
+    if(n==null){ inp.value=''; inp.placeholder='não bate com o IV'; inp.style.borderColor='#D3453E'; return; }
+    const v=Salvos.ler(); v[i].nivel=n; Salvos.gravar(v); pintarSalvos();
+  };
+  nv.appendChild(inp);
+  box.appendChild(nv);
+  box.appendChild(el('div','note','Digite o PC que aparece no jogo e eu descubro o nível. '+
+    'Se o PC não fechar com esses IVs, eu recuso em vez de gravar errado.'));
+
+  // forma
+  if(temSombroso(p)){
+    box.appendChild(el('div','eyebrow','Forma'));
+    const f=el('div','segs forma');
+    [[false,'Normal'],[true,'Sombroso']].forEach(([val,rot])=>{
+      const d=el('div', (!!s.sombra===val)?'on':'', rot);
+      if(val) d.classList.add('roxo');
+      d.onclick=()=>{
+        if(!!s.sombra===val) return;
+        const v=Salvos.ler(); v[i].sombra=val; Salvos.gravar(v); pintarSalvos();
+      };
+      f.appendChild(d);
+    });
+    box.appendChild(f);
+  }
+
+  const ok=el('button','act','Concluir');
+  ok.onclick=fechar;
+  box.appendChild(ok);
+  const del=el('button','act ghost','Remover da caixa');
+  del.style.color='#D3453E';
+  del.onclick=()=>{ Salvos.del(i); S.editSalvo=null; };
+  box.appendChild(del);
+  return box;
+}
+
 function pintarSalvos(){
   const out=$('#savedout'); out.innerHTML='';
   let aplicado=null;
@@ -2678,9 +2862,38 @@ function pintarSalvos(){
     out.appendChild(el('div','note','<b>Restaurei sozinho</b> a partir do backup embutido nesta versão '+
       '(de '+q+'). Se não for o que você esperava, use "Restaurar" mais abaixo para trazer outro backup.'));
   }
-  const v=Salvos.ler();
-  if(!v.length){out.appendChild(el('div','empty','Nada salvo ainda. Escolha um Pokémon em Consultar e toque em Salvar.'));}
-  v.forEach((s,i)=>{
+  const todos=Salvos.ler();
+  if(todos.length){
+    const sc=el('div','scroll');
+    const cont={}; ETIQ.forEach(([k])=>cont[k]=0);
+    let semTag=0;
+    todos.forEach(s=>{ const t=etiqDe(s); if(!t.length) semTag++; t.forEach(k=>{ if(k in cont) cont[k]++; }); });
+    const tds=el('div','chip'+(S.filtroEtiq?'':' on'),'Todos ('+todos.length+')');
+    tds.onclick=()=>{ S.filtroEtiq=null; pintarSalvos(); };
+    sc.appendChild(tds);
+    ETIQ.forEach(([k,rot,cor])=>{
+      const on=S.filtroEtiq===k;
+      const c=el('div','chip'+(on?' on':''), rot+' ('+cont[k]+')');
+      c.style.cssText = on ? 'background:'+cor+';color:#fff;border-color:'+cor
+                           : 'color:'+cor;
+      c.onclick=()=>{ S.filtroEtiq=k; pintarSalvos(); };
+      sc.appendChild(c);
+    });
+    if(semTag){
+      const c=el('div','chip'+(S.filtroEtiq==='_sem'?' on':''),'Sem etiqueta ('+semTag+')');
+      c.onclick=()=>{ S.filtroEtiq='_sem'; pintarSalvos(); };
+      sc.appendChild(c);
+    }
+    out.appendChild(sc);
+  }
+  const v=todos.map((s,i)=>({s,i})).filter(({s})=>{
+    if(!S.filtroEtiq) return true;
+    if(S.filtroEtiq==='_sem') return !etiqDe(s).length;
+    return etiqDe(s).indexOf(S.filtroEtiq)>=0;
+  });
+  if(!todos.length){out.appendChild(el('div','empty','Nada salvo ainda. Escolha um Pokémon em Consultar e toque em Salvar.'));}
+  else if(!v.length){out.appendChild(el('div','empty','Nenhum salvo com essa etiqueta.'));}
+  v.forEach(({s,i})=>{
     const p=BYID[s.id]; if(!p) return;
     const g=analise(p,s.sombra,s.iv[0],s.iv[1],s.iv[2],'gl',S.teto);
     const u=analise(p,s.sombra,s.iv[0],s.iv[1],s.iv[2],'ul',S.teto);
@@ -2696,12 +2909,19 @@ function pintarSalvos(){
         ? '<div style="font-size:11px;color:var(--fraco)">nível '+String(s.nivel).replace('.',',')+
           ' · PC '+fmt(pcReal)+'</div>'
         : '<div style="font-size:11px;color:#C77B22">nível não informado</div>')+
+      (etiqDe(s).length
+        ? '<div class="etiqs">'+etiqDe(s).map(k=>chipEtiq(k)).join('')+'</div>' : '')+
       '</div>';
     d.appendChild(cx);
-    d.appendChild(el('div','x','×'));
-    d.querySelector('.x').onclick=e=>{e.stopPropagation();Salvos.del(i)};
+    const ed=el('div','x','✎');
+    ed.title='Editar';
+    ed.onclick=e=>{ e.stopPropagation();
+      S.editSalvo = (S.editSalvo===i) ? null : i; pintarSalvos(); };
+    d.appendChild(ed);
     d.onclick=()=>abrirPokemon(p,{sombra:s.sombra, iv:s.iv, nivel:s.nivel});
     out.appendChild(d);
+    if(S.editSalvo===i)
+      out.appendChild(editorSalvo(i, s, ()=>{ S.editSalvo=null; pintarSalvos(); }));
   });
   const semNivel=Salvos.ler().map((s,i)=>({s,i})).filter(x=>x.s.nivel==null);
   if(semNivel.length) out.appendChild(secaoCompletarNivel(semNivel));
