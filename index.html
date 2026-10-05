@@ -385,7 +385,7 @@ footer b{color:var(--tinta2)}
   <div>
     <h1>Stat Product</h1>
     <div class="sub">IV, ligas e ataques · base PvPoke de <span id="gmdate"></span><br>
-      <span style="opacity:.75">versão <b id="verapp">04/10 21:53</b></span></div>
+      <span style="opacity:.75">versão <b id="verapp">04/10 21:59</b></span></div>
   </div>
 </header>
 
@@ -707,6 +707,42 @@ function rankingGeral(){
   out.forEach((x,i)=>x.pos=i+1);
   return RANK_GERAL=out;
 }
+// Ranking CONTRA um tipo: quem mais machuca um chefe daquele tipo, usando
+// qualquer golpe. É o que importa na hora de montar time para a reide.
+let RANK_CONTRA={};
+function rankingContra(T){
+  if(RANK_CONTRA[T]) return RANK_CONTRA[T];
+  const out=[];
+  P.forEach(p=>{
+    [false,true].forEach(sombra=>{
+      if(sombra && !temSombroso(p)) return;
+      const m=melhorCombo(p,sombra,[T],null,15,NIVEL_REF);
+      if(!m) return;
+      out.push({p, sombra, dps:m.dps, f:m.f, c:m.c});
+    });
+  });
+  out.sort((a,b)=>b.dps-a.dps);
+  out.forEach((x,i)=>x.pos=i+1);
+  return RANK_CONTRA[T]=out;
+}
+function posicaoContra(p,sombra,T){
+  const lista=rankingContra(T);
+  const i=lista.findIndex(x=>x.p.id===p.id && !!x.sombra===!!sombra);
+  if(i<0) return null;
+  return {pos:i+1, total:lista.length, dps:lista[i].dps,
+          forca:lista[i].dps/(lista[0]?lista[0].dps:1),
+          f:lista[i].f, c:lista[i].c};
+}
+function melhoresContra(p,sombra,quantos){
+  const out=[];
+  DB.types.forEach(T=>{
+    const r=posicaoContra(p,sombra,T);
+    if(r) out.push({tipo:T, ...r});
+  });
+  out.sort((a,b)=>a.pos-b.pos);
+  return quantos?out.slice(0,quantos):out;
+}
+
 let RANK_TIPO={};
 function rankingTipo(T){
   if(RANK_TIPO[T]) return RANK_TIPO[T];
@@ -764,7 +800,8 @@ function perfeicaoDPS(p,ivA){ return (p.atk+ivA)/(p.atk+15); }
 // ---- cartão de reide no Consultar ---------------------------------------
 function cartaoReide(){
   const p=S.p, sombra=S.sombra;
-  const tops=melhoresTipos(p,sombra,3);
+  const contra = S.rCardModo!=='ataca';
+  const tops = contra ? melhoresContra(p,sombra,3) : melhoresTipos(p,sombra,3);
   if(!tops.length) return null;
   const perf=perfeicaoReide(p,S.iv);
   const perfD=perfeicaoDPS(p,S.iv[0]);
@@ -779,33 +816,72 @@ function cartaoReide(){
   big.innerHTML='<div><div class="pct num" style="color:#E8763A">'+
       (perf*100).toFixed(2).replace('.',',')+'<small>%</small></div>'+
       '<div class="rot">de atacante perfeito</div></div>'+
-    '<div class="metabig" style="--c:#E8763A"><div class="p">#'+tops[0].pos+'</div>'+
-    '<div class="l">em '+(TIPO[tops[0].tipo]||tops[0].tipo)+'<br>de '+fmt(tops[0].total)+'</div></div>';
+    '<div class="metabig" style="--c:#E8763A"><div class="p">#'+fmt(tops[0].pos)+'</div>'+
+    '<div class="l">'+(contra?'contra ':'em ')+(TIPO[tops[0].tipo]||tops[0].tipo)+
+      '<br>de '+fmt(tops[0].total)+'</div></div>';
   c.appendChild(big);
+
+  const segs=el('div','segs');
+  segs.style.cssText='margin:0 15px 4px';
+  [['contra','Contra qual tipo'],['ataca','Com qual tipo ataca']].forEach(([k,rot])=>{
+    const d=el('div', (contra?(k==='contra'):(k==='ataca'))?'on':'', rot);
+    d.onclick=()=>{ S.rCardModo=k; render(); };
+    segs.appendChild(d);
+  });
+  c.appendChild(segs);
 
   const lista=el('div','reidetipos');
   tops.forEach((t,i)=>{
-    const cor=CORTIPO[t.tipo]||'#8895A6';
     const d=el('div','rtipo');
     d.innerHTML='<div class="rt-pos">'+(i+1)+'º</div>'+
       '<div class="rt-chip">'+chipTipo(t.tipo)+'</div>'+
       '<div class="rt-dados"><b>#'+fmt(t.pos)+'</b> de '+fmt(t.total)+
         ' · '+Math.round(t.forca*100)+'% do melhor · DPS '+t.dps.toFixed(1).replace('.',',')+
         '<div class="rt-mv">'+t.f.nome+' + '+t.c.nome+'</div></div>';
-    d.onclick=()=>{ S.rTipo=t.tipo; aba('reide'); pintarReide(); };
+    d.onclick=()=>{
+      if(contra){ S.rModo='chefe'; S.rChefe=null; }
+      else { S.rModo='tipo'; S.rTipo=t.tipo; }
+      aba('reide'); pintarReide();
+    };
     lista.appendChild(d);
   });
   c.appendChild(lista);
 
+  // os 18, para ver também onde ele não serve
+  const bt=el('button','act ghost', S.rCardTudo?'Esconder os outros tipos':'Ver os 18 tipos');
+  bt.style.cssText='margin:0 15px 10px;width:calc(100% - 30px)';
+  bt.onclick=()=>{ S.rCardTudo=!S.rCardTudo; render(); };
+  c.appendChild(bt);
+
+  if(S.rCardTudo){
+    const todos = contra ? melhoresContra(p,sombra) : melhoresTipos(p,sombra,18);
+    const tb=el('div','reidetipos');
+    tb.style.paddingTop='0';
+    todos.forEach((t,i)=>{
+      const d=el('div','rtipo');
+      const fraco = t.forca<0.4;
+      d.style.opacity = fraco?'.5':'1';
+      d.innerHTML='<div class="rt-pos">'+(i+1)+'º</div>'+
+        '<div class="rt-chip">'+chipTipo(t.tipo)+'</div>'+
+        '<div class="rt-dados"><b>#'+fmt(t.pos)+'</b> de '+fmt(t.total)+
+          ' · '+Math.round(t.forca*100)+'% · DPS '+t.dps.toFixed(1).replace('.',',')+'</div>';
+      tb.appendChild(d);
+    });
+    c.appendChild(tb);
+  }
+
   const nt=el('div','custo');
   nt.style.setProperty('--c','#E8763A');
-  nt.innerHTML='<div class="cn">Os <b>'+(perf*100).toFixed(1).replace('.',',')+'%</b> pesam os três IVs '+
-    'como a comunidade compara atacantes: o ataque conta quatro vezes mais, porque é ele que '+
-    'derruba o chefe, e defesa e PS entram porque sobreviver mais tempo rende mais dano no total.'+
-    '<br>Só de <b>dano por segundo</b>, que é o que importa quando a reide é contra o relógio, '+
-    'ele rende <b>'+(perfD*100).toFixed(1).replace('.',',')+'%</b> — aí só o ataque conta.'+
-    '<br>O ranking por tipo compara todo mundo no <b>nível 40 com IV 15</b>, contra um chefe de '+
-    'defesa 200.</div>';
+  nt.innerHTML='<div class="cn">'+
+    (contra
+      ? '<b>Contra qual tipo</b>: em que chefes ele serve de counter, com o dano já '+
+        'multiplicado pela fraqueza do alvo. É por aqui que se escolhe quem levar.'
+      : '<b>Com qual tipo ataca</b>: entre os atacantes daquele elemento, onde ele fica.')+
+    '<br>Os <b>'+(perf*100).toFixed(1).replace('.',',')+'%</b> pesam os três IVs como a comunidade '+
+    'compara atacantes: ataque conta quatro vezes mais, defesa e PS entram porque sobreviver '+
+    'rende mais dano no total. Só de dano por segundo ele faz <b>'+
+    (perfD*100).toFixed(1).replace('.',',')+'%</b>.'+
+    '<br>Comparação no <b>nível 40 com IV 15</b>, contra chefe de defesa 200.</div>';
   c.appendChild(nt);
   return c;
 }
@@ -1875,7 +1951,7 @@ function manual(txt,ok){
 }
 
 // ---- estado -------------------------------------------------------------
-const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, rLista:'lend', rVerC:24, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
+const S = {p:null, sombra:false, rModo:'tipo', rTipo:null, rCardModo:'contra', rCardTudo:false, rLista:'lend', rVerC:24, filtroEtiq:null, editSalvo:null, rChefe:null, rChefeTxt:'', rVer:15, purif:false, ivPre:null, nivelPre:null, iv:[0,15,15], teto:50, liga:'gl', modo:'pvp', ligaMv:'gl', alvo:'', nivelAtual:null, tLiga:'gl', tSel:[], tFonte:'caixa', tPool:[], tProf:40, tVer:12, tTipos:[], tModo:'ou', tCrit:'tipo', tComp:[], tAberto:null, tDet:[], trFonte:'caixa', trVer:8, metaLiga:'gl', ligaConf:'gl', timeLiga:'gl', time:[], alvoCaixa:'', leitura:null, nivelLido:null, cpLido:null, idLido:null};
 const $ = s => document.querySelector(s);
 const el = (t,c,html,txt)=>{const e=document.createElement(t); if(c)e.className=c;
   if(html!=null)e.innerHTML=html; if(txt!=null)e.textContent=txt; return e};
